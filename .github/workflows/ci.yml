@@ -33,9 +33,21 @@ jobs:
             process.exit(bad ? 1 : 0);
           "
 
+  # hashFiles() is not allowed in a job-level `if`, so a small job checks for the app first.
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      has_app: ${{ steps.check.outputs.has_app }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          if [ -f src-tauri/Cargo.toml ]; then echo "has_app=true" >> "$GITHUB_OUTPUT"; else echo "has_app=false" >> "$GITHUB_OUTPUT"; fi
+
   windows:
     runs-on: windows-latest
-    if: ${{ hashFiles('src-tauri/Cargo.toml') != '' }}
+    needs: detect
+    if: needs.detect.outputs.has_app == 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
