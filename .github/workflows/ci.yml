@@ -66,6 +66,9 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: UI tests
+        working-directory: ui
+        run: npx vitest run
       - name: Format
         working-directory: src-tauri
         run: cargo fmt --all -- --check
