@@ -55,7 +55,7 @@ are for community contributors on cheaper models.
 - A plain `cargo build` (debug or release) makes an exe that loads the dev server at
   `http://localhost:1420` and shows "can't reach this page". Use `npm run tauri dev` from `ui/`
   for a debug run. For a standalone exe use `npm run tauri build` from `ui/`, or
-  `cargo build --release --features tauri/custom-protocol`.
+  `cargo build --release --features custom-protocol`.
 - Antivirus software may lock a freshly built executable on first launch. If the linker
   reports LNK1104, `cargo test --lib` still works; a reboot usually clears it.
 
