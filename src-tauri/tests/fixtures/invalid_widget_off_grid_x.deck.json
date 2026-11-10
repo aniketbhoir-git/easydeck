@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "name": "Fixture deck",
+  "settings": {
+    "homePage": "home",
+    "theme": "dark",
+    "accent": "#3366ff"
+  },
+  "sources": {
+    "stats": {
+      "kind": "system_stats",
+      "metrics": [
+        "cpu.load"
+      ]
+    },
+    "games": {
+      "kind": "game_watch",
+      "processes": [
+        "game.exe"
+      ]
+    },
+    "api": {
+      "kind": "http_poll",
+      "url": "https://example.com/health"
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "widgets": [
+        {
+          "id": "a",
+          "type": "text",
+          "kind": "clock",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "b",
+          "type": "gauge",
+          "source": "stats",
+          "metric": "cpu.load",
+          "position": {
+            "x": 3,
+            "y": 0,
+            "w": 2
+          }
+        },
+        {
+          "id": "c",
+          "type": "launch",
+          "action": {
+            "type": "launch",
+            "kind": "steam",
+            "appId": 440
+          },
+          "position": {
+            "x": 0,
+            "y": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "game",
+      "title": "Game",
+      "grid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "trigger": {
+        "source": "games",
+        "when": {
+          "process": "game.exe"
+        }
+      },
+      "widgets": [
+        {
+          "id": "m",
+          "type": "macro",
+          "action": {
+            "type": "key_macro",
+            "keys": [
+              "1"
+            ]
+          },
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "t",
+          "type": "toggle",
+          "onAction": {
+            "type": "page",
+            "page": "home"
+          },
+          "offAction": {
+            "type": "shell",
+            "command": "mute"
+          },
+          "position": {
+            "x": 1,
+            "y": 0
+          }
+        },
+        {
+          "id": "s",
+          "type": "status",
+          "source": "api",
+          "path": "ok",
+          "okWhen": "true",
+          "position": {
+            "x": 2,
+            "y": 0
+          }
+        },
+        {
+          "id": "p",
+          "type": "media",
+          "provider": "spotify",
+          "controls": [
+            "play_pause",
+            "next"
+          ],
+          "position": {
+            "x": 3,
+            "y": 0
+          }
+        },
+        {
+          "id": "e",
+          "type": "embed",
+          "url": "https://example.com",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 2
+          }
+        }
+      ]
+    }
+  ]
+}
