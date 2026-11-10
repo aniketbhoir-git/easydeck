@@ -35,8 +35,9 @@ Rust stable · Tauri 2 · Svelte/TypeScript · tokio · windows-rs · jsonschema
 are for community contributors on cheaper models.
 
 ## Status
-- Module R0 (define) done: spec, schema draft, docs, backlog, CI.
-- Next: R1-1 (Tauri scaffold). There is no app code yet; CI is dormant until R1 lands.
+- Module R0 (define) done: spec, schema draft, docs, backlog, CI. Issues #1–#25 map to R1-1…R7-3 in order.
+- R1-1 (Tauri scaffold) merged in PR #26. The `windows` CI job now runs on every PR.
+- Next: R1-2 (#2), deck model, load and validate.
 
 ## Git workflow
 - `main` is protected: the `windows` CI check must pass; no force pushes.
@@ -51,6 +52,10 @@ are for community contributors on cheaper models.
 - Toolchain: Rust stable MSVC, VS Build Tools 2022 (C++ workload), Node 22+, WebView2.
 - Build the UI once (`npm install && npm run build` in `ui/`) before the first `cargo build`;
   `tauri::generate_context!` embeds `ui/dist`.
+- A plain `cargo build` (debug or release) makes an exe that loads the dev server at
+  `http://localhost:1420` and shows "can't reach this page". Use `npm run tauri dev` from `ui/`
+  for a debug run. For a standalone exe use `npm run tauri build` from `ui/`, or
+  `cargo build --release --features tauri/custom-protocol`.
 - Antivirus software may lock a freshly built executable on first launch. If the linker
   reports LNK1104, `cargo test --lib` still works; a reboot usually clears it.
 

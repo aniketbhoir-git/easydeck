@@ -42,8 +42,10 @@ Windows first. macOS and Linux are out of scope for v1.
 ## Development
 
 Prerequisites: Rust stable (MSVC toolchain), Node 22+, the Visual Studio Build Tools "Desktop
-development with C++" workload, and the WebView2 runtime. Once issue R1 lands: run
-`npm install` in `ui/`, then `npm run tauri dev` from `ui/`. From `src-tauri/`, check your work
+development with C++" workload, and the WebView2 runtime. Run `npm install` in
+`ui/`, then `npm run tauri dev` from `ui/` for a debug run, or `npm run tauri build` for a
+standalone exe. A plain `cargo build` does not embed the UI: the window then shows
+"can't reach this page". From `src-tauri/`, check your work
 with `cargo test`, `cargo clippy --all-targets -- -D warnings` and `cargo fmt --all -- --check`.
 
 ## Contributing
