@@ -1,0 +1,22 @@
+# Rust
+src-tauri/target*/
+/target
+
+# Node
+ui/node_modules/
+ui/dist/
+
+# Tauri generated
+src-tauri/gen/schemas/
+
+# Secrets and local state
+.env
+.env.*
+*.log
+*.db
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

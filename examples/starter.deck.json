@@ -1,0 +1,35 @@
+{
+  "$schema": "../schema/deck.schema.json",
+  "version": 1,
+  "name": "Starter deck",
+  "settings": { "homePage": "home", "theme": "dark" },
+  "sources": {
+    "stats": { "kind": "system_stats", "metrics": ["cpu.load", "gpu.load", "ram.used"] },
+    "games": { "kind": "game_watch", "processes": ["game.exe"] }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": { "columns": 4, "rows": 2 },
+      "widgets": [
+        { "id": "clock", "type": "text", "kind": "clock", "position": { "x": 0, "y": 0 } },
+        { "id": "cpu", "type": "gauge", "source": "stats", "metric": "cpu.load", "unit": "%", "label": "CPU", "position": { "x": 1, "y": 0 } },
+        { "id": "game-one", "type": "launch", "label": "Game", "order": "recent", "position": { "x": 0, "y": 1 },
+          "action": { "type": "launch", "kind": "steam", "appId": 440 } },
+        { "id": "notes", "type": "launch", "label": "Notes", "position": { "x": 1, "y": 1 },
+          "action": { "type": "launch", "kind": "exe", "path": "C:/Windows/notepad.exe" } }
+      ]
+    },
+    {
+      "id": "in-game",
+      "title": "In game",
+      "grid": { "columns": 4, "rows": 2 },
+      "trigger": { "source": "games", "when": { "process": "game.exe" } },
+      "widgets": [
+        { "id": "heal", "type": "macro", "label": "Heal", "position": { "x": 0, "y": 0 },
+          "action": { "type": "key_macro", "keys": ["1"], "cycleMs": 3000, "toggle": true } }
+      ]
+    }
+  ]
+}
