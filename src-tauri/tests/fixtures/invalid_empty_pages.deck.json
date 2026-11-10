@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "name": "Fixture deck",
+  "settings": {
+    "homePage": "home",
+    "theme": "dark",
+    "accent": "#3366ff"
+  },
+  "sources": {
+    "stats": {
+      "kind": "system_stats",
+      "metrics": [
+        "cpu.load"
+      ]
+    },
+    "games": {
+      "kind": "game_watch",
+      "processes": [
+        "game.exe"
+      ]
+    },
+    "api": {
+      "kind": "http_poll",
+      "url": "https://example.com/health"
+    }
+  },
+  "pages": []
+}
