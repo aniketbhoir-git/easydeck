@@ -1,3 +1,4 @@
+pub mod deck;
 pub mod error;
 
 pub fn run() {
