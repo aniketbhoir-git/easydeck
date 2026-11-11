@@ -1,183 +1,300 @@
-# EasyDeck — LLM Implementation Specification
+# EasyDeck — Implementation Specification
 
-> **Purpose:** a hand-off spec for a coding LLM. It states how the app works and how the code
-> should be structured and verified. It is safe to paste into any model: it describes an
-> independent, open-source desktop app that launches programs, sends key presses and shows
-> status on a touch monitor, using public, documented interfaces.
+> **Purpose:** the hand-off spec for a coding agent. It states how the app works and how the
+> code is structured and verified. It describes an independent, open-source desktop app that
+> launches programs, sends key presses and shows status on a touch monitor, using public,
+> documented interfaces.
 >
-> Status: v3, module R0 (define). Product decisions in §1 to §5 are settled. Work packages
-> in §7 map to the issues in `docs/ISSUE-BACKLOG.md`.
+> Status: **v4** (architecture review, 2026-11-11). v4 replaces v3. The changes and their
+> reasons are in `docs/STRATEGY.md` §3.1. Work packages in §7 map to `docs/ISSUE-BACKLOG.md`.
 
 ---
 
-## 0. Ground rules (give these to the coding LLM)
+## 0. Ground rules
 
-1. **The LLM edits the deck file only, never app code.** Every deck change made by an LLM is a
-   diff that the user approves in the app. A change that fails schema validation applies nothing.
-2. **Show every action before it runs.** A deck from a file or an LLM can launch programs,
-   send key macros and run shell commands. The app lists each new action and asks the user
-   before it accepts the deck.
+1. **An LLM edits the deck file only, never app code.** Every deck change made by an LLM is a
+   proposal that the user approves in the app. A proposal that fails validation applies nothing.
+2. **Nothing risky runs before the user approves it.** A deck can launch programs, send key
+   macros, run shell commands and call the network. Each of these is a *risk item* (§4.3).
+   An unapproved risk item is inert. This holds for an import, an LLM proposal and a deck
+   file that changed on disk.
 3. **Shell actions use an allow-list only.** No free-form command line from a deck.
 4. **Local only.** The MCP server binds to `127.0.0.1`. No telemetry. The only network calls
-   are those a widget or source the user configured makes (weather, Spotify, a web embed, the
-   classifier if the user turns it on).
-5. **No secrets in a deck.** API keys live in the OS credential store or an `.env` file that
-   is never exported or committed. A `.easydeck` pack contains the deck JSON and icons only.
-6. **Original branding.** Do not bundle third-party logos or art. Game cover art loads at run
-   time from the user's own installed store client or a public endpoint.
-7. Stack is fixed by §2. Ask before adding a dependency.
+   are the ones an approved risk item makes (an `http_poll` source, an `embed`, a remote icon).
+5. **No secrets in a deck.** A `.easydeck` pack contains the deck JSON and icons only.
+6. **Remote content never gets app access.** A page in an `embed` widget has no Tauri IPC and
+   no capabilities.
+7. **Original branding.** Do not bundle third-party logos or art. Game cover art comes from
+   the user's local store client cache at run time.
+8. **The stack is fixed by §2.** Ask before adding a dependency.
+9. **Real input goes to the probe only.** An automated test may launch a program or send a
+   key only when the target is the first-party probe (§8.3), and only in the opt-in platform
+   job. A plain `cargo test` never does either.
 
 ## 1. Product
 
 A desktop app that turns a small touch monitor into a dynamic deck. It shows launch tiles,
-macros, live stats and media widgets. A user builds the deck in a simple GUI, or tells an
+macros, live stats and media controls. A user builds the deck in a simple GUI, or tells an
 LLM what they want and lets the LLM build the whole deck. Decks export as files that other
 people import and change.
 
-Prior art: an earlier PowerShell + browser prototype proved the idea. It had a local server,
-one HTML page in a browser app window, a hand-edited JSON config, live stats, weather,
-Spotify now-playing, a game page that opened when a game started, and timed key macros. What
-carries over: data-driven launch types (`steam`, `exe` with fallback, `uri`, `web`), Steam
-cover art by app id, GPU/CPU/RAM stats, game-triggered pages, key loops with hardware scan
-codes, and a recent-launch record. What EasyDeck fixes: the browser feel (no press feedback,
-text selection, scroll bounce, a visible browser window), the hard-coded game page, the
-schema-less config, and the cookie and login limits of embeds in a plain browser.
+Prior art: an earlier PowerShell + browser prototype proved the idea (launch types, Steam
+covers, stats, a game page, key loops with scan codes). EasyDeck fixes its limits: the browser
+feel, the hard-coded game page and the schema-less config.
 
 ### 1.1 Layers
 
 | Layer | Job |
 |---|---|
-| App (Rust) | Window on the chosen display, kiosk mode, touch input, run actions, poll sources, detect games |
-| Deck file | Pages, layout, widgets, actions, sources. JSON, checked by `schema/deck.schema.json` |
-| GUI editor | Basic edit in the app: add tile, set launch, record or type a macro, move, resize |
-| AI layer | Local MCP server + `docs/FOR_LLMS.md`. An LLM reads the deck, proposes a diff, the user approves |
-| Classifier | Cheap yes/no gate (Jev or a local model) for suggestions and context switches |
+| Core (Rust, no OS code) | Deck model, validation, diff, risk items, approvals, layout, page controller, macro scheduler, packs |
+| Platform (Rust, Windows) | Display list, kiosk window, launch, key injection, process watch, media session |
+| App (Tauri) | Window, IPC commands, wiring of core and platform |
+| UI (Svelte) | Deck renderer, editor, review screens |
+| AI layer | Local MCP server + `docs/FOR_LLMS.md`. An LLM reads the deck and proposes a new one |
+| CLI | `easydeck validate`, `diff`, `pack`: the same core code, for CI and for contributors |
 
-### 1.2 Touch feel
+### 1.2 Touch feel and focus
 
 The window is a borderless kiosk on a display the user picks (by monitor id, saved in the app
-settings, not the deck). The UI shows press animations on every tile, disables text
-selection and context menus, blocks overscroll and pinch zoom, and sizes hit targets for a
-finger (at least 48 px).
+settings, not the deck). The UI shows press animations on every tile, disables text selection
+and context menus, blocks overscroll and pinch zoom, and sizes hit targets for a finger (at
+least 48 px).
+
+**The deck must not take focus from the game.** A tap on a tile must leave the foreground
+window as it is. If the deck takes focus, a full-screen game can minimize, and a key macro
+goes to the deck instead of the game. This is the largest technical risk in the product.
+Issue A-1 (a spike) proves the window design before R1-4 builds it. Edit mode may take focus,
+because it needs text input.
 
 ## 2. Locked technology decisions
 
 - Rust stable (MSVC), Tauri 2, WebView2. Frontend: Svelte 5 + TypeScript (Vite).
-- tokio for async; serde / serde_json; `jsonschema` crate for validation; reqwest for HTTP.
-- windows-rs for display enumeration, process watch, key injection (`SendInput`, scan codes).
-- MCP server: the official Rust MCP SDK (`rmcp`) or a small hand-written JSON-RPC server over
-  localhost HTTP/SSE. Decide in issue R6-1.
-- Windows 10/11 only for v1. macOS and Linux are out of scope.
+- tokio for async; serde / serde_json; `jsonschema` for validation; reqwest for HTTP.
+- `schemars` generates the JSON Schema from the Rust deck types. `ts-rs` generates the
+  TypeScript types. Neither file is edited by hand (§4.1).
+- windows-rs for display enumeration, process watch, key injection (`SendInput`, scan codes)
+  and the system media session.
+- MCP server: the `rmcp` crate with the Streamable HTTP transport. Check the crate's current
+  state in R6-1; a small hand-written JSON-RPC server is the fallback.
+- Test tools: `proptest`, `insta` (snapshots), `httpmock`, `vitest`, Playwright,
+  `tauri-driver`. Supply chain: `cargo-deny`.
+- Windows 10/11 only for v1. macOS and Linux are out of scope for the app. The core, the MCP
+  server and the CLI must build and pass their tests on Linux, so that any agent sandbox can
+  work on them.
 
-## 3. Repository layout (the LLM must create these paths)
+## 3. Repository layout
+
+A Cargo workspace at the repository root.
 
 ```
-src-tauri/            Rust crate (Tauri app + core)
-  src/main.rs lib.rs error.rs
-  src/deck/{model,load,validate,diff}.rs
-  src/actions/{mod,launch,macros,shell}.rs
-  src/sources/{mod,system_stats,http_poll,game_watch}.rs
-  src/display/{mod,kiosk}.rs
-  src/mcp/{mod,tools}.rs
-  src/classifier/{mod,jev,local}.rs
-  src/ipc/{commands,events,state}.rs
-  tests/fixtures/
-ui/                   Svelte frontend (deck renderer, editor)
-schema/deck.schema.json
-docs/                 SPEC, STRATEGY, backlog, FOR_LLMS, contributor guides
-examples/             Sample decks and .easydeck packs
-.github/              CI, issue and PR templates
+Cargo.toml                    workspace
+crates/
+  easydeck-core/              deck/{model,validate,diff,risk,approval,migrate}.rs
+                              layout.rs  pages.rs  history.rs  pack/
+                              actions/{mod,keys,macros}.rs   traits + pure logic
+                              sources/{mod,http_poll}.rs     the only reqwest user in core
+  easydeck-platform-windows/  display, kiosk, opener, key sender, process lister,
+                              system stats, media session   (windows-rs lives here only)
+  easydeck-mcp/               server, tools, proposal queue
+  easydeck-cli/               validate, diff, pack, gen
+  easydeck-probe/             test target: records the launches and keys it receives
+src-tauri/                    easydeck-app: Tauri shell, ipc/{commands,events,state}.rs
+xtask/                        `cargo xtask check | gen | ...`
+ui/                           Svelte frontend; src/lib/generated/ is generated
+schema/deck.schema.json       generated from easydeck-core
+tests/fixtures/               valid and invalid decks, shared by all crates
+examples/                     sample decks and .easydeck packs
+docs/                         SPEC, STRATEGY, backlog, FOR_LLMS, contributor guides
+.github/                      CI, CODEOWNERS, issue and PR templates
 ```
+
+Dependency rules, checked in CI (§9):
+
+- `easydeck-core` depends on no Tauri crate and no `windows` crate.
+- Only `easydeck-platform-windows` and `easydeck-probe` call the OS to spawn a process or
+  send input.
+- Network clients exist only in `easydeck-core::sources::http_poll` and `easydeck-mcp`.
 
 ## 4. Deck model
 
-The deck file is JSON. The authoritative shape is `schema/deck.schema.json`. In words:
+The deck file is JSON. In words:
 
 - **Deck:** `version`, `name`, `pages[]`, `sources{}`, optional `settings`.
 - **Page:** `id`, `title`, optional `trigger` (a context rule such as "game process X is
   running"), `grid` (columns, rows), `widgets[]`.
-- **Widget:** `id`, `type`, position and size on the grid, plus type-specific fields.
-  v1 types: `launch`, `macro`, `toggle`, `gauge`, `status`, `text` (clock or label),
-  `media` (Spotify), `embed` (web URL).
+- **Widget:** `id`, `type`, optional `position` on the grid, plus type-specific fields.
+  v1 types: `launch`, `macro`, `toggle`, `gauge`, `status`, `text` (clock, date or label),
+  `media` (the system media session), `embed` (web URL).
 - **Action:** `launch` (kinds `steam`, `exe`, `uri`, `url`; `exe` may have a `fallback`),
-  `key_macro` (`keys`, `cycleMs`, `keyGapMs`, `holdMs`), `shell` (allow-list id plus args),
-  `page` (switch page).
-- **Source:** named data feed. Kinds `system_stats`, `http_poll` (url, interval, JSON path),
-  `game_watch` (process names to watch).
+  `key_macro` (`keys`, `cycleMs`, `keyGapMs`, `holdMs`, `toggle`), `shell` (allow-list id plus
+  args), `page` (switch page).
+- **Source:** named data feed. Kinds `system_stats`, `http_poll`, `game_watch`.
 - **Pack (`.easydeck`):** a zip with `deck.json` and `icons/`.
 
 Recent-first ordering is not stored in the deck. The app keeps a local play-history file and
 sorts widgets that carry `"order": "recent"` at render time.
 
+### 4.1 One contract, generated
+
+The Rust types in `easydeck-core::deck::model` are the single source of the deck contract.
+
+- `cargo xtask gen` writes `schema/deck.schema.json` (through `schemars`) and
+  `ui/src/lib/generated/` (through `ts-rs`).
+- `cargo xtask gen --check` fails when a generated file differs from the committed one. CI
+  runs it.
+- Doc comments on the Rust types become the schema descriptions. Write them for an LLM
+  reader: they are part of the product.
+- One validator. CI checks `examples/` with `easydeck validate`, the same code the app runs.
+- Validator messages are the feedback an LLM gets. Each message names the path, the rule and
+  the fix. Snapshot tests (`insta`) hold the messages stable.
+- Until the first public release, `version` stays `1` and breaking changes are allowed. From
+  the first release, each format change adds a migration function and a fixture.
+
+### 4.2 Layout rules
+
+- `position` is optional. A widget without one is placed in the first free cell, in reading
+  order, by `easydeck-core::layout`. This makes a deck easy for an LLM to write and lets a
+  pack fit a screen with another shape.
+- Two widgets must not overlap. A widget must fit inside the grid. Both are validation errors.
+
+### 4.3 Risk items and approval
+
+A *risk item* is a part of a deck that can act outside the deck window:
+
+| Risk item | Example |
+|---|---|
+| Launch action | start `C:/Games/x.exe`, open `steam://rungameid/440` |
+| Key macro | send `1`, `2`, `ctrl+q` every 3 s |
+| Shell action | allow-list id `lock-screen` with args |
+| Network endpoint | an `http_poll` URL, an `embed` URL, a remote icon URL |
+
+- `easydeck-core::deck::risk` lists the risk items of a deck. Each item has a stable hash of
+  its canonical content.
+- The app keeps an approval ledger (`approvals.json`, in the app data folder, never in a
+  deck or a pack). It holds the approved hashes for each deck.
+- A risk item whose hash is not in the ledger is inert: the tile shows a lock badge and a tap
+  opens the review screen. An unapproved endpoint is not called.
+- The review screen lists items by kind. It marks a key macro that uses the Windows key or
+  `alt+tab` as a system shortcut. It marks a shell id that is not in the local allow-list as
+  unavailable.
+- An item that the user makes in the GUI editor is approved when the user saves it.
+- The same mechanism serves the import, the LLM proposal and a deck file that another
+  program changed on disk.
+
 ## 5. Service contracts (traits; signatures only)
 
 - `ActionRunner`: `run(&Action) -> Result<()>`; one implementation per action kind.
+- Platform traits, defined in core and implemented in `easydeck-platform-windows`:
+  `Opener`, `KeySender`, `ProcessLister`, `StatsReader`, `MediaSession`, `Displays`, `Clock`.
+  Core tests use fakes.
 - `Source`: `subscribe() -> Stream<SourceValue>`; implementations for the three kinds.
-- `DeckStore`: `load`, `save`, `validate(&Value) -> Vec<ValidationError>`, `diff(old, new)`.
-- `Classifier`: `async fn classify(&self, question: &str, context: &Value) -> Result<Verdict>`
-  where `Verdict { yes: bool, probability: f32 }`. Implementations: `JevClassifier`
-  (Vercel AI Gateway model `typesafe-ai/jev`, API key from env, never the short-lived OIDC
-  token) and `LocalClassifier` (a local model endpoint). The AI SDK call is TypeScript only,
-  so capture the HTTP request shape first and call it with reqwest. Check pricing.
-  The classifier is off by default.
-- MCP tools (local): `deck.get`, `deck.schema`, `deck.validate`, `deck.propose_diff`.
-  `propose_diff` queues a diff. Apply needs a tap in the app.
+- `DeckStore`: `load`, `save` (atomic), `validate`, `diff(old, new)`.
+- `ApprovalLedger`: `is_approved(deck, item)`, `approve(deck, items)`.
+- `MediaSession`: current title, artist and thumbnail, plus `play_pause`, `next`, `previous`,
+  through `GlobalSystemMediaTransportControlsSessionManager`. It works with any player that
+  reports to Windows. It needs no account, no token and no network call.
+- MCP tools (local): `deck_get`, `deck_schema`, `deck_validate`, `deck_propose`,
+  `system_inventory`. Tool names use `_` because some clients reject a dot.
+  - `deck_propose` takes a full new deck, validates it, computes the diff and queues it.
+    Apply needs a tap in the app.
+  - `system_inventory` returns installed Steam games (name, app id) and Start menu programs
+    (name, path), so that an LLM can write correct launch actions. It is off until the user
+    turns it on, because it sends local data to the LLM client.
+
+The classifier of v3 is not in v1 (STRATEGY §3.1).
 
 ## 6. Data-flow walkthroughs
 
-### 6.1 Launch tile tap
-UI sends `run_action(widget_id)` -> core looks up the action -> `ActionRunner` runs it ->
-success or a typed error returns to the UI -> a play-history record is written for game tiles.
+### 6.1 Tile tap
+UI sends `run_action(widget_id)` -> the app looks up the action -> the ledger check passes, or
+the app returns `needs_approval` -> `ActionRunner` runs it -> success or a typed error returns
+to the UI -> a play-history record is written for launch tiles.
 
 ### 6.2 Game context page
-`game_watch` source reports a watched process starting -> core finds the page whose `trigger`
-matches -> UI switches to it. When the process stops, the UI returns to the previous page.
+`game_watch` reports a watched process starting -> `pages::PageController` finds the page whose
+`trigger` matches -> UI switches to it. When the process stops, the UI returns to the previous
+page.
 
 ### 6.3 LLM edit
-LLM calls `deck.schema` and `deck.get` -> proposes a diff via `deck.propose_diff` -> core
-validates the result -> the app shows a diff view with every new or changed action ->
-the user approves or rejects -> on approve, the deck file is replaced atomically and the
-UI reloads. A rejected or invalid diff changes nothing.
+LLM calls `deck_schema`, `deck_get` and, when it is on, `system_inventory` -> sends a full new
+deck to `deck_propose` -> core validates it and computes the diff -> the app shows the diff,
+with new and changed risk items first -> the user approves or rejects -> on approve, the deck
+file is replaced atomically, the ledger gets the approved hashes and the UI reloads. A
+rejected, invalid or stale proposal changes nothing.
 
 ### 6.4 Import
-User opens a `.easydeck` -> core validates `deck.json` -> the app shows a preview and the
-list of actions the deck can run -> the user accepts -> the deck is stored as a new deck.
+User opens a `.easydeck` -> core checks the zip (no path escape, size limits, known entries
+only) and validates `deck.json` -> the app shows a preview and the risk items -> the user
+accepts -> the deck is stored as a new deck and the ledger gets the approved hashes.
+
+### 6.5 Deck file changed on disk
+The app loads a deck -> core lists its risk items -> items that the ledger does not hold stay
+inert until the user reviews them.
 
 ## 7. Work packages
 
 | Module | Content |
 |---|---|
-| R0 Define | This spec, deck schema draft, docs, backlog, CI |
-| R1 App shell | Tauri scaffold, window on a chosen display, kiosk, touch feel, deck load + validate, launch tiles |
-| R2 Live widgets | System stats, HTTP status, clock, Spotify, web embed |
+| R0 Define | Spec, schema draft, docs, backlog, CI (done) |
+| A Architecture | Focus spike, workspace split, generated contract, `xtask`, guardrail checks, probe, UI harness, approval ledger, layout rules |
+| R1 App shell | Scaffold, deck load + validate, renderer (done to R1-3); kiosk window, launch runner |
+| R2 Live widgets | System stats, gauge / status / text, system media, web embed |
 | R3 Macros + game detection | Key macros, process watch, context pages, recent-first order |
 | R4 GUI editor | Add, move, edit tiles in the app |
-| R5 Export and import | `.easydeck` packs with preview and action review |
-| R6 AI layer | MCP server, `FOR_LLMS.md`, approve-diff flow |
-| R7 Classifier | `Classifier` trait, Jev client, local client |
+| R5 Export and import | Deck diff, `.easydeck` packs with preview and risk review |
+| R6 AI layer | MCP server, approve UI, `FOR_LLMS.md`, inventory tool |
 
-Order: R1 first. R2, R3, R4 and R5 then run in parallel. R6 needs R1 and the diff code from
-R5-1. R7 needs R6 only for its first consumer, so it can start early.
+Order: module A first, then one thin slice end to end (milestone M1 in the backlog), then the
+rest in parallel. Out of v1: the classifier, usage-based suggestions, a community deck
+gallery, macOS and Linux.
 
-Out of v1: usage-based auto-suggestions, a community deck gallery, macOS and Linux.
+## 8. Testing strategy
 
-## 8. Testing and QA strategy
+The aim: a pull request needs no manual test, unless its issue carries `verify:human`.
 
-- Pure logic (schema validation, diff, grid layout, parsers) has unit tests with fixture
-  decks in `src-tauri/tests/fixtures/`.
-- Actions run behind traits; tests use fakes. No test launches a real program or sends real
-  keys. A manual Windows test checklist sits in each issue marked `needs-windows-test`.
+### 8.1 Core (Linux and Windows CI)
+- Unit tests with fixture decks in `tests/fixtures/`.
+- Property tests (`proptest`) for validation, diff, layout and the risk hash.
+- Snapshot tests (`insta`) for validator messages and diff summaries.
+- State-machine tests for the page controller and the macro scheduler, with a fake clock.
 - HTTP code uses `httpmock`. No test calls a real network service.
-- Every sample deck in `examples/` must pass the schema in CI.
-- UI components get `vitest` tests for state and a screenshot or short clip in the PR.
+- MCP: integration tests start the server on a random loopback port and use a scripted client.
 
-## 9. Guardrail and review checklist (run before every merge)
+### 8.2 UI (Linux CI)
+- `vitest` for stores and components.
+- Playwright runs the built UI in a browser with a mock IPC layer (`@tauri-apps/api/mocks`)
+  and touch emulation. It checks behavior and compares screenshots. CI makes the screenshots
+  and uploads them; a contributor does not attach them by hand.
 
-- [ ] LLM and import paths cannot apply a deck without user approval
-- [ ] every new action kind is listed in the action review screen
-- [ ] shell actions go through the allow-list only
-- [ ] the MCP server binds to localhost only
-- [ ] no secrets in decks, packs, logs or fixtures
-- [ ] no telemetry; network calls only for sources the user configured
-- [ ] no third-party marks or assets bundled
-- [ ] `cargo test`, `cargo clippy -- -D warnings`, `cargo fmt --check` pass
+### 8.3 Platform (Windows CI, opt-in job)
+- `easydeck-probe` is a small first-party program. It writes the arguments it starts with and
+  the key events it receives (scan code, order, time) to a file.
+- Platform tests start the probe through the real `Opener` and send keys to it through the
+  real `KeySender`. They run only when `EASYDECK_PROBE_TESTS=1`, in the `platform-windows`
+  job. A-1 checks that a hosted runner accepts this.
+
+### 8.4 End to end (Windows CI)
+- One smoke test through `tauri-driver`: the app starts, loads a deck, a tap on a tile
+  reaches the probe.
+
+### 8.5 Manual, once per release
+Real touch hardware, a monitor unplug, a game that runs elevated, a full-screen game with the
+deck on the second display. The checklist is `docs/RELEASE-CHECKLIST.md` (written in A-6).
+
+## 9. Guardrails (checked by CI, not by a tick box)
+
+| Rule | Check |
+|---|---|
+| Core has no OS or Tauri code | dependency check in `cargo xtask check` |
+| Process spawn and input only in the platform crate | clippy `disallowed-methods`, or an `xtask` source check |
+| Network clients only where §3 allows | the same check |
+| MCP binds to loopback, needs the token, checks `Origin` | integration tests in `easydeck-mcp` |
+| An unapproved risk item never runs | core tests on the `run_action` path |
+| Import and proposal cannot write a deck without approval | core and MCP tests |
+| No secrets or user paths in a pack | pack round-trip test |
+| Licences, advisories, dependency sources | `cargo-deny` |
+| Generated files are current | `cargo xtask gen --check` |
+| Format and lint | `cargo fmt --check`, `cargo clippy -- -D warnings`, `svelte-check` |
+
+A reviewer still checks: no telemetry, no third-party marks, and that a new action kind or
+endpoint kind is a risk item in `deck::risk`.
