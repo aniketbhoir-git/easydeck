@@ -440,6 +440,8 @@ fn main() {
     let monitor_idx: Option<usize> = arg_value("--monitor").and_then(|s| s.parse().ok());
     let want_topmost = has_flag("--topmost");
     let want_noactivate = !has_flag("--no-noactivate") && !selftest;
+    // CI only: a WebDriver session may need a visible window from the start.
+    let start_visible = selftest || std::env::var_os("EASYDECK_SPIKE_VISIBLE").is_some();
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -454,7 +456,7 @@ fn main() {
                 WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                     .title("EasyDeck A-1 focus spike")
                     .inner_size(1024.0, 600.0)
-                    .visible(selftest)
+                    .visible(start_visible)
                     .focused(selftest)
                     .build()?;
             if selftest {

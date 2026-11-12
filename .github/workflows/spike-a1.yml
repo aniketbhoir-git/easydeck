@@ -57,6 +57,7 @@ jobs:
           Invoke-WebRequest "https://msedgedriver.microsoft.com/$ver/edgedriver_win64.zip" -OutFile "$dir\d.zip"
           Expand-Archive "$dir\d.zip" -DestinationPath $dir -Force
           $app = (Resolve-Path .\target\release\easydeck-a1-focus-spike.exe).Path
+          $env:EASYDECK_SPIKE_VISIBLE = '1'
           $drv = Start-Process tauri-driver -ArgumentList '--native-driver',"$dir\msedgedriver.exe" -PassThru
           Start-Sleep -Seconds 5
           $caps = @{ capabilities = @{ alwaysMatch = @{ browserName = 'wry'; 'tauri:options' = @{ application = $app } } } } | ConvertTo-Json -Depth 6
