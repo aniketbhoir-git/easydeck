@@ -1,7 +1,7 @@
 //! Shared app state held by Tauri.
 
-use crate::deck::{Deck, DeckStore};
 use crate::error::AppError;
+use easydeck_core::deck::{Deck, DeckStore};
 
 /// Default deck, bundled at build time. SPEC §4 does not name a deck location yet, so the
 /// renderer starts from the example deck until the app settings issue adds a user path.

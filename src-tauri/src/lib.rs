@@ -1,4 +1,3 @@
-pub mod deck;
 pub mod error;
 pub mod ipc;
 

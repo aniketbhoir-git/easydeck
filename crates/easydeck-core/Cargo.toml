@@ -1,0 +1,11 @@
+[package]
+name = "easydeck-core"
+version = "0.1.0"
+description = "EasyDeck core: deck model, load and validate"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+jsonschema = { workspace = true }
