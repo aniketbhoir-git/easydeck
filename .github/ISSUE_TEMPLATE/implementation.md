@@ -1,6 +1,6 @@
 ---
 name: Implementation task
-about: Implement one slice of docs/SPEC.md (LLM-assisted contributions welcome)
+about: Implement one slice of docs/SPEC.md (agent-assisted contributions welcome)
 title: "[impl] "
 labels: ["llm-friendly"]
 ---
@@ -8,8 +8,8 @@ labels: ["llm-friendly"]
 ### Summary
 <!-- One line: what this slice delivers. -->
 
-### Tier / size
-tier: <!-- `tier:max` or `tier:any` --> · size: <!-- S / M / L -->
+### Proof / size
+proof: <!-- `verify:auto` or `verify:human`; add `review:owner` for a protected path --> · size: <!-- S / M / L -->
 
 ### Depends on
 <!-- Issue ids (for example R1-1), or "none". -->
@@ -21,11 +21,15 @@ tier: <!-- `tier:max` or `tier:any` --> · size: <!-- S / M / L -->
 - [ ]
 - [ ]
 
-### Tests
-- [ ] Unit/integration tests as described in `docs/SPEC.md` §8
-- [ ] `cargo test` + `cargo clippy` + `cargo fmt` pass
-- [ ] Windows verification (describe what you ran)
+### Contract
+<!-- The PR that merged the types and the ignored tests, and the ignore tag to remove
+     (for example `#[ignore = "R3-3"]`). -->
 
-### Paste instructions
-Paste `docs/SPEC.md` §0 (ground rules) followed by this issue body into your model.
-An LLM changes the deck file only, never app code; every deck change needs user approval.
+### Tests
+- [ ] The contract tests pass with no change to what they assert
+- [ ] `cargo xtask check` passes
+- [ ] Manual steps (`verify:human` only): <!-- list them -->
+
+### For the agent
+Read `AGENTS.md` (or `CLAUDE.md`), `docs/SPEC.md` §0 and this issue. Stop and ask when the
+issue conflicts with the spec.

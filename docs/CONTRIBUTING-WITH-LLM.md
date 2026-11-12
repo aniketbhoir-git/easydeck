@@ -1,62 +1,73 @@
 # Contributing with your own LLM tokens
 
-This repository is designed so that community members can contribute **compute/tokens** rather
-than just hours. Every implementation issue is a paste-ready prompt: you use your own model
-subscription (Cursor, Claude, ChatGPT, OpenRouter, anything) to generate the code, then you
-verify it and open a PR. The project gets reviewed, tested code — you get to ship something real
-on whatever budget you already pay for.
+This repository is designed so that community members can contribute **compute** as well as
+hours. You point your own coding agent (Claude Code, Codex, Cursor, any tool) at an issue.
+The issue already has its tests. The agent makes them pass. CI proves the result.
 
-## The flow in one screen
+Tokens are not the scarce part of this project. The maintainer's review time is. So the rule
+of the whole design is: **CI is the first reviewer.** A pull request that CI proves is cheap
+to merge. A pull request that needs a person to work out whether it is right is expensive, no
+matter how few tokens it cost.
 
-1. Pick an unclaimed issue in `docs/ISSUE-BACKLOG.md` whose tier matches what you have.
-2. Read `docs/SPEC.md` §0 plus the sections the issue references.
-3. In a fresh chat/session, paste **both**:
-   - `docs/SPEC.md` §0 (the ground rules), and
-   - the full issue body, verbatim.
-4. Generate into the repo. Ask the model to work in small increments and write tests as it goes.
-5. Compile, run the tests, and fix what breaks — **your judgment here is the real contribution;
-   never paste code you haven't read and run.**
-6. Open a PR with the template, including test output, a screenshot or a short clip.
+## The flow
 
-## Which issues need which tier
+1. Pick an issue with status `ready` in `docs/ISSUE-BACKLOG.md` and claim it on GitHub.
+   `ready` means its contract is on `main`: the types, the trait signatures and the
+   acceptance tests, marked `#[ignore = "<issue id>"]` or `test.skip`.
+2. Start your agent in the repository root. It reads `AGENTS.md` (or `CLAUDE.md`) on its own.
+   Tell it: "Implement issue <ID> from docs/ISSUE-BACKLOG.md. Read docs/SPEC.md §0 first."
+3. The agent removes the ignore marks and makes the tests pass. It does not change what a
+   test asserts. If a test looks wrong, stop and say so in the issue.
+4. Run `cargo xtask check`. It runs what CI runs. (Until issue A-4 lands: `cargo test`,
+   `cargo clippy --all-targets -- -D warnings`, `cargo fmt --all -- --check` in `src-tauri/`,
+   and `npx vitest run` in `ui/`.)
+5. Read the diff yourself. Open one pull request for the one issue, with the template.
 
-| Label | Model you need | Typical issues |
-|---|---|---|
-| `tier:max` | Claude Max/Ultra, Sonnet 4.5+, Opus, GPT-5 class | kiosk window on a chosen display, key injection with scan codes, process watch, MCP approve-diff flow |
-| `tier:any` | Haiku 4.5, DeepSeek V3.2, Gemini 2.5 Flash, Qwen3 | deck model and schema checks, tile UI, stats and HTTP sources, editor forms, pack zip code, classifier clients |
+## What you can work on, by machine
 
-The maintainer owns most `tier:max` issues. The `tier:any` issues are exactly where your spare
-tokens are worth the most.
+| You have | You can take |
+|---|---|
+| Any OS, or a cloud agent sandbox (Linux) | Issues in `easydeck-core`, `easydeck-mcp`, `easydeck-cli` and `ui/`. `cargo xtask check --core` proves them. |
+| Windows 10/11 | Everything above, plus the platform crate and the app. |
+| Windows + a touch monitor or a second display | `verify:human` issues. These are worth the most. |
 
-## Prompting the model correctly
+Until issue A-2 (workspace split) merges, every build needs Windows.
 
-- Paste the issue **verbatim**; do not summarize away file paths or acceptance criteria.
-- Include a one-line directive: _"Implement exactly per SPEC.md. Every deck change from a
-  file or an LLM needs user approval. Shell actions use the allow-list only. Write tests.
-  Output code only."_
-- Work incrementally — one file or one behavior at a time, compiling between steps.
-- If the model proposes anything outside the SPEC scope (telemetry, a cloud account, free-form
-  shell commands from a deck), drop that part and re-prompt. It is out of scope by design.
+## Labels
 
-## What counts as a finished PR
+| Label | Meaning |
+|---|---|
+| `verify:auto` | CI proves the acceptance criteria. Any model may try; the tests decide. |
+| `verify:human` | A person with the hardware must check. The issue lists the manual steps. |
+| `review:owner` | The change touches a protected path. The maintainer reviews it line by line, so keep it small. |
 
-- Issue linked; all acceptance criteria ticked.
-- `cargo test`, `cargo clippy`, and `cargo fmt` pass.
-- Windows behavior verified (your machine, or CI, with a screenshot, clip or log for UI and
-  action work). No test launches a real program or sends real keys; use fakes.
-- Guardrail checklist (`docs/SPEC.md` §9) ticked.
+The labels do not name models. If a cheap model makes the tests pass and the checks are
+green, the work is good. If it cannot, use a stronger model or leave the issue.
 
-## Cutting token cost (so your spare usage goes further)
+## Rules for the agent
 
-- **Cache read ≈ 10× cheaper:** re-send `SPEC.md` §0 + the issue in every message; nearly all
-  your context is then served from cache, not billed at full input price.
-- **`tier:any` needs no big model:** DeepSeek V3.2 or Gemini Flash is usually plenty.
-- **Batch endpoints** (for example OpenRouter `:batch`) cut input ~50% for non-interactive
-  passes (refactors, test generation, doc edits).
+- Stay inside the issue. No extra refactor, no extra feature, no new dependency outside
+  `docs/SPEC.md` §2.
+- Pure logic goes in `easydeck-core`, behind a trait, with a fake in the tests. OS calls go in
+  `easydeck-platform-windows` only. CI rejects the opposite.
+- Never weaken a guardrail to make a test pass (`docs/SPEC.md` §0 and §9).
+- No real launch and no real key in a plain `cargo test`. Real input goes to
+  `easydeck-probe` only, in the opt-in platform job.
+- If the model proposes anything outside the scope (telemetry, a cloud account, free-form
+  shell commands from a deck), drop that part.
 
-## If you're the maintainer (max-tier subscriber)
+## What counts as a finished pull request
 
-- Drive the `tier:max` issues with your Ultra/Max plan.
-- Use Cursor or Claude Code pointed at this repo for the interactive compile/fix loop.
-- Ruthlessly split work into `tier:any` issues so the community can fill in around you.
-- Track rough token spend in PR comments (optional) to show the project's true, shared cost.
+- One issue; the issue is linked.
+- CI is green. The contract tests pass, and the PR says "only un-ignored" or lists each
+  assertion it changed, with the reason.
+- For `verify:human`: the manual steps, what you ran and on what hardware.
+- You read the code. Never send code you did not read.
+
+## If you are the maintainer
+
+- Write the contract before you open an issue: types, traits, ignored tests. A good contract
+  is most of the design work, and it is the part that needs a top model and your judgment.
+- Keep `review:owner` paths short and stable, so that most pull requests do not touch them.
+- When a pull request is hard to review, the fix is a better test in the contract, not a
+  longer review.
