@@ -77,16 +77,35 @@ Milestone M2 — breadth, open to the community:
 - **Labels:** `verify:auto`, `review:owner`, `size:M` · **Status:** next
 - **Depends on:** PR #28 (R1-3) merged
 - **Goal:** move to the workspace layout of SPEC §3 with no behavior change.
-- **Files:** root `Cargo.toml` (workspace, shared lints and dependency versions);
-  `crates/easydeck-core` (move `src-tauri/src/deck/*` and `error.rs`); `src-tauri` becomes
-  `easydeck-app` and keeps `ipc/`; fixtures move to `tests/fixtures/`; empty crates
-  `easydeck-platform-windows`, `easydeck-mcp`, `easydeck-cli`; `.github/workflows/ci.yml`.
-- **Requirements:** `easydeck-core` has no dependency on `tauri` or `windows`; the app error
-  type that serializes for IPC stays JSON-compatible; one `Cargo.lock` at the root; the
+- **Files:**
+  - **Create:** root `Cargo.toml` (workspace, shared lints and dependency versions);
+    `crates/easydeck-core/` (from `src-tauri/src/deck/*`);
+    `crates/easydeck-core/tests/deck_load.rs` (from `src-tauri/tests/deck_load.rs`);
+    `tests/fixtures/` (from `src-tauri/tests/fixtures/`); empty crates
+    `easydeck-platform-windows`, `easydeck-mcp`, `easydeck-cli`.
+  - **Modify:** `src-tauri/Cargo.toml` (package `easydeck-app`, depends on `easydeck-core`;
+    the exe name stays `easydeck`); `src-tauri/src/lib.rs`; `.github/workflows/ci.yml`.
+  - **Delete:** `src-tauri/src/deck/`, `src-tauri/tests/`, `src-tauri/Cargo.lock`.
+  - **Stays:** `src-tauri/src/error.rs` and, from PR #28, `src-tauri/src/ipc/`.
+- **Requirements:** `easydeck-core` has no dependency on `tauri` or `windows`; `AppError`
+  (the IPC error shape) stays in `src-tauri/src/error.rs` and stays JSON-compatible; core
+  keeps its own error types and the app maps them; one `Cargo.lock` at the root; the
   `windows` CI job keeps its name (branch protection uses it) and runs the whole workspace; a
   new `core-linux` job runs `cargo test -p easydeck-core -p easydeck-mcp -p easydeck-cli` on
-  `ubuntu-latest`.
-- **Acceptance:** every test that passed before passes now; `npm run tauri dev` still shows
+  `ubuntu-latest`. The binary of `easydeck-cli` has the name `easydeck-cli`.
+  Fix the paths that the move breaks. In `validate.rs`, the `include_str!` path becomes
+  `../../../../schema/deck.schema.json`. In `deck_load.rs`, the fixtures are at
+  `CARGO_MANIFEST_DIR/../../tests/fixtures`, the starter deck is at
+  `CARGO_MANIFEST_DIR/../../examples/starter.deck.json`, and the import is
+  `easydeck_core::deck`.
+  In the `windows` job, remove `working-directory: src-tauri` from the Format, Clippy, Build
+  and Test steps. The steps run from the repository root: `cargo fmt --all -- --check`,
+  `cargo clippy --workspace --all-targets --all-features -- -D warnings`,
+  `cargo build --workspace --locked`, `cargo test --workspace --locked`. Set the rust-cache
+  `workspaces` to `.`. Delete the `detect` job and the `needs` and `if` lines that use it.
+  The job id `windows` does not change.
+- **Acceptance:** `cargo test --workspace` runs no fewer tests than `cargo test` in
+  `src-tauri` ran before the move; the PR states both counts; `npm run tauri dev` still shows
   the starter deck; both CI jobs are green.
 - **Tests:** the existing ones, moved.
 
@@ -94,20 +113,31 @@ Milestone M2 — breadth, open to the community:
 - **Labels:** `verify:auto`, `review:owner`, `size:M` · **Status:** blocked
 - **Depends on:** A-2
 - **Goal:** the Rust deck types generate the JSON Schema and the TypeScript types.
-- **Files:** `crates/easydeck-core/src/deck/model.rs` (derive `JsonSchema` and `TS`, doc
-  comments, constraints as attributes); `crates/easydeck-cli` (`gen`, `validate`);
-  `schema/deck.schema.json` and `ui/src/lib/generated/` (generated); `ui/src/lib/api.ts`
-  (use the generated types; keep the `invoke` wrappers).
-- **Requirements:** `easydeck gen` writes both outputs; `easydeck gen --check` exits non-zero
-  on drift; `easydeck validate <files>` prints one line per error (path, rule, fix); the
-  generated schema keeps the v3 limits (id pattern, string lengths, numeric ranges, no
-  unknown fields); the model changes of SPEC v4 land here: `media` without a provider and
-  without `volume`, `position` optional. Check the current `schemars` and `ts-rs` versions
-  before use. If `schemars` cannot express a rule, the rule moves to the semantic validator
-  with a test.
+- **Files:**
+  - **Create:** `ui/src/lib/generated/` (generated); the `gen` and `validate` code in
+    `crates/easydeck-cli`.
+  - **Modify:** `crates/easydeck-core/src/deck/model.rs` (derive `JsonSchema` and `TS`, doc
+    comments, constraints as attributes); `schema/deck.schema.json` (generated);
+    `ui/src/lib/api.ts` (use the generated types; keep the `invoke` wrappers); root
+    `Cargo.toml` and `crates/easydeck-core/Cargo.toml` (`schemars`, `ts-rs`, and `insta` as a
+    dev dependency; SPEC §2 approves all three); `.github/workflows/ci.yml`.
+- **Requirements:** `easydeck-cli gen` writes both outputs; `easydeck-cli gen --check` exits
+  non-zero on drift; `cargo xtask gen` (A-4) runs this code, and contributors and CI use the
+  `xtask` form after A-4; `easydeck-cli validate <files>` prints one line per error (path,
+  rule, fix); the generated schema keeps the v3 limits (id pattern, string lengths, numeric
+  ranges, no unknown fields); the model changes of SPEC v4 land here: `media` without a
+  provider and without `volume`. `position` stays required until A-9. Use the current stable
+  `schemars` and `ts-rs`, pin the exact versions in the workspace manifest, and state them
+  in the PR. If `schemars` cannot express a rule, the rule moves to the semantic validator
+  with a test. Two rules are known to need this: the required fields for each launch kind
+  (`appId`, `path`, `target`; an `if/then` in the v3 schema), and unknown fields on a widget
+  (`unevaluatedProperties` in the v3 schema; the widget type is a flattened enum). Each gets
+  a fixture. Core embeds the committed `schema/deck.schema.json` with `include_str!`.
+  `jsonschema` stays a run-time dependency.
 - **Acceptance:** every fixture in `tests/fixtures/` gives the same verdict as before (valid
   stays valid, each invalid one fails on the same path); `examples/` validates; the CI
-  `schema` job (ajv) is replaced by `easydeck validate examples/*.deck.json` in `core-linux`.
+  `schema` job (ajv) is replaced by `easydeck-cli validate examples/*.deck.json` in
+  `core-linux`.
 - **Tests:** the fixture table; `insta` snapshots of the validator messages for each invalid
   fixture.
 
@@ -115,10 +145,16 @@ Milestone M2 — breadth, open to the community:
 - **Labels:** `verify:auto`, `size:S` · **Status:** blocked
 - **Depends on:** A-2 (and A-3 for the `gen --check` step)
 - **Goal:** one command runs what CI runs, and any agent tool finds the rules.
-- **Files:** `xtask/`, `.cargo/config.toml` (alias), `AGENTS.md`, `CLAUDE.md`, CI workflow.
+- **Files:**
+  - **Create:** `xtask/`, `.cargo/config.toml` (alias), `AGENTS.md`, one first test in
+    `ui/src/`.
+  - **Modify:** `CLAUDE.md`, `.github/workflows/ci.yml`, `ui/package.json` (add `vitest` as
+    a dev dependency and a `test` script; SPEC §2 approves it).
 - **Requirements:** `cargo xtask check` runs fmt check, clippy with `-D warnings`, the
-  workspace tests, `gen --check`, example validation, and in `ui/`: `npm ci`, `svelte-check`,
-  `vitest run`, `npm run build`; `cargo xtask check --core` runs the Linux subset; CI calls
+  workspace tests, `gen --check`, example validation, and in `ui/`: `npm ci`,
+  `npm run check`, `npm test`, `npm run build`; `cargo xtask gen` runs the `gen` code of
+  `easydeck-cli`, and `xtask` holds no generator code; `cargo xtask check --core` runs the
+  Linux subset; CI calls
   `xtask` so that the two cannot drift; `AGENTS.md` holds the rules, the commands and the
   layout; `CLAUDE.md` imports `AGENTS.md` and adds only what is specific to Claude Code.
 - **Acceptance:** a clean clone on Linux passes `cargo xtask check --core`; on Windows
@@ -129,11 +165,18 @@ Milestone M2 — breadth, open to the community:
 - **Labels:** `verify:auto`, `review:owner`, `size:M` · **Status:** blocked
 - **Depends on:** A-4
 - **Goal:** the SPEC §9 table is enforced by CI.
-- **Files:** `deny.toml`, `clippy.toml` or an `xtask` source check, `.github/CODEOWNERS`,
-  the workflow, `.github/PULL_REQUEST_TEMPLATE.md`.
-- **Requirements:** `cargo-deny` (licences, advisories, bans, sources); a check that fails
-  when `easydeck-core` depends on `tauri` or `windows`; a check that fails on
-  `std::process::Command`, `SendInput` or a network client outside the crates SPEC §3 allows;
+- **Files:**
+  - **Create:** `deny.toml`, `.github/CODEOWNERS`, an `xtask` source check.
+  - **Modify:** `.github/workflows/ci.yml`, `.github/PULL_REQUEST_TEMPLATE.md`.
+- **Requirements:** `cargo-deny` (licences, advisories, bans, sources); CI installs
+  `cargo-deny` with a pinned version; `deny.toml` allows these licences: MIT, Apache-2.0,
+  BSD-2-Clause, BSD-3-Clause, ISC, Zlib, Unicode-3.0, MPL-2.0; the implementer reports each
+  crate that needs another licence, and the maintainer decides; a check that fails
+  when `easydeck-core` depends on `tauri` or `windows`; a source check that fails on a
+  process spawn (`std::process::Command`, `tokio::process`, `CreateProcessW`,
+  `ShellExecuteW`) or `SendInput` outside `easydeck-platform-windows` and `easydeck-probe`,
+  and on a network client (`reqwest`, `hyper`, `std::net`, `tokio::net`) outside
+  `easydeck-core::sources::http_poll` and `easydeck-mcp`;
   CODEOWNERS for `crates/easydeck-platform-windows/`, `crates/easydeck-mcp/`,
   `crates/easydeck-core/src/deck/{risk,approval}.rs`, `.github/` and `deny.toml`; workflow
   actions pinned by commit SHA; the workflow uses no secrets on `pull_request`.
@@ -163,7 +206,9 @@ Milestone M2 — breadth, open to the community:
 - **Labels:** `verify:auto`, `size:M` · **Status:** blocked
 - **Depends on:** PR #28 (R1-3) merged
 - **Goal:** UI work is proven in CI with behavior tests and screenshots.
-- **Files:** `ui/playwright.config.ts`, `ui/e2e/`, `ui/src/lib/mock-ipc.ts`, a `ui-linux` CI job.
+- **Files:**
+  - **Create:** `ui/playwright.config.ts`, `ui/e2e/`, `ui/src/lib/mock-ipc.ts`.
+  - **Modify:** `ui/package.json`, `.github/workflows/ci.yml` (a `ui-linux` job).
 - **Requirements:** Playwright runs the built UI with `mockIPC` and a fixture deck; touch
   emulation at two viewport sizes (1920x480 and 1024x600); first tests: the starter deck
   renders, a tap calls `run_action` once, text cannot be selected, the press animation class
@@ -183,23 +228,29 @@ Milestone M2 — breadth, open to the community:
 - **Requirements:** `risk_items(&Deck) -> Vec<RiskItem>` for launch, key macro, shell and
   network endpoints (`http_poll` URL, `embed` URL, remote icon URL); a stable SHA-256 hash
   over a canonical form (key order and widget position do not change it; any change to what
-  runs does); a flag for system-shortcut macros; `ApprovalLedger` stored in the app data
-  folder, written atomically; `run_action` returns the typed error `needs_approval` for an
+  runs does); a flag for system-shortcut macros; `ApprovalLedger` is one set of approved
+  hashes for all decks, with no deck key, stored as `approvals.json` in the app data folder
+  in the form `{ "version": 1, "approved": ["<hex sha256>"] }` and written atomically; when
+  `approvals.json` is corrupt, the app treats the ledger as empty, renames the bad file to
+  `approvals.json.corrupt` and shows one message; `run_action` returns the typed error `needs_approval` for an
   unapproved item; sources and embeds with an unapproved endpoint do not start; the review
   screen lists items by kind and approves the selected ones; the bundled starter deck is
   approved at first start only for items that are in the build.
 - **Acceptance:** a deck edited on disk to change one `exe` path shows that tile locked and
   the others working; approval unlocks it; a moved tile needs no new approval.
 - **Tests:** property tests (hash is stable under reorder, changes with content); ledger
-  tests; a core test that an unapproved item never reaches an `ActionRunner`; Playwright test
+  tests (the same item in two decks needs one approval; a renamed deck keeps its approvals;
+  a corrupt file gives an empty ledger and a `.corrupt` copy); a core test that an unapproved item never reaches an `ActionRunner`; Playwright test
   of the review screen.
 
 ### Issue A-9 — Layout rules (SPEC §4.2)
 - **Labels:** `verify:auto`, `size:S` · **Status:** blocked
 - **Depends on:** A-3
 - **Goal:** auto-placement and the overlap check.
-- **Files:** `crates/easydeck-core/src/layout.rs`, `deck/validate.rs`, the UI `Page` component.
-- **Requirements:** `place(page) -> Vec<Placed>` keeps explicit positions and puts each
+- **Files:** `crates/easydeck-core/src/layout.rs`, `deck/model.rs`, `deck/validate.rs`, the
+  UI `Page` component.
+- **Requirements:** `position` becomes optional in the model, and the generated files are
+  made again; `place(page) -> Vec<Placed>` keeps explicit positions and puts each
   widget without one in the first free cell in reading order; a widget that does not fit
   anywhere is a validation error; overlap of two explicit positions is a validation error
   that names both widget ids; the UI draws from `Placed`, not from raw positions.
@@ -244,7 +295,8 @@ Milestone M2 — breadth, open to the community:
   handler; typed errors (`NotFound`, `SpawnFailed`); an error shows a short toast in the UI.
 - **Acceptance:** each kind produces the right `OpenRequest`; a missing `exe` path uses the
   fallback; the probe test starts the probe with arguments and reads them back.
-- **Tests:** fake `Opener` unit tests for each kind and for the fallback; one probe test.
+- **Tests:** fake `Opener` unit tests for each kind and for the fallback; one probe test; the
+  `tauri-driver` smoke test gets a step: a tap on a launch tile starts the probe.
 
 ---
 
@@ -313,7 +365,7 @@ Milestone M2 — breadth, open to the community:
 
 ### Issue R3-1 — Key macro runner (SPEC §5, §6.1)
 - **Labels:** `verify:auto`, `review:owner`, `size:L` · **Status:** blocked
-- **Depends on:** R1-5, A-6, A-1
+- **Depends on:** R1-5, A-6, A-1, R3-2
 - **Goal:** run key macros with hardware scan codes, once or in a loop.
 - **Files:** `crates/easydeck-core/src/actions/{keys,macros}.rs` (parser, scheduler,
   `KeySender` trait), `crates/easydeck-platform-windows/src/keys.rs`.
@@ -321,11 +373,18 @@ Milestone M2 — breadth, open to the community:
   with `SendInput` using `KEYEVENTF_SCANCODE`; honor `holdMs`, `keyGapMs`, `cycleMs`; with
   `toggle`, one tap starts a loop task and the next tap stops it; at most one loop per widget;
   all loops stop on app exit and when the page's trigger process stops; the elevated-target
-  behavior follows the A-1 report and is documented.
+  behavior follows the A-1 report and is documented. Before each cycle of a loop, the
+  scheduler asks `ProcessLister::foreground_process()`. When the result is not the trigger
+  process of the page, the loop pauses and the app emits `macro:<widgetId>` with `paused`.
+  The same event carries `running` and `stopped`. A paused loop resumes at the next cycle
+  when the foreground process matches again. On a page with no `trigger`, the scheduler
+  makes no foreground check.
 - **Acceptance:** the probe receives the keys in the right order, with timing inside a
   tolerance; a toggle macro starts and stops; closing the app stops all loops.
 - **Tests:** unit tests for key-name parsing; scheduler tests with a fake `KeySender` and a
-  fake clock; probe tests for order and timing.
+  fake clock; scheduler tests with a fake `ProcessLister`: pause, resume, stop when the
+  trigger process exits, and no check on a page with no trigger; probe tests for order and
+  timing.
 
 ### Issue R3-2 — Game watch source (SPEC §5, §6.2)
 - **Labels:** `verify:auto`, `review:owner`, `size:M` · **Status:** blocked
@@ -335,7 +394,8 @@ Milestone M2 — breadth, open to the community:
   diff and debounce logic), `crates/easydeck-platform-windows/src/processes.rs`.
 - **Requirements:** poll the process list at `intervalMs`; compare against `processes`
   case-insensitively; emit `started` / `stopped` with the process name; debounce a flapping
-  process (ignore a stop shorter than one interval).
+  process (ignore a stop shorter than one interval); `ProcessLister` also has
+  `foreground_process() -> Option<String>` (the process name of the foreground window).
 - **Acceptance:** starting and closing the probe (watched by its file name) produces one
   `started` and one `stopped` event.
 - **Tests:** unit tests over scripted process lists, including the debounce case; one probe test.
@@ -511,12 +571,15 @@ Milestone M2 — breadth, open to the community:
 - **Labels:** `verify:auto`, `review:owner`, `size:M` · **Status:** blocked
 - **Depends on:** R6-1
 - **Goal:** an LLM can find the user's games and programs, with the user's consent.
-- **Files:** `crates/easydeck-core/src/inventory.rs` (parsers), a platform reader,
+- **Files:** `crates/easydeck-core/src/inventory.rs` (parsers),
+  `crates/easydeck-platform-windows/src/inventory.rs` (the `Inventory` implementation),
   `crates/easydeck-mcp/src/tools.rs`.
 - **Requirements:** parse Steam `libraryfolders.vdf` and `appmanifest_*.acf` into (name, app
   id); list Start menu shortcuts as (name, target path); the tool `system_inventory` exists
   only when the setting is on (default off); the settings screen says what the tool sends;
-  the result holds no user name and no document path.
+  the result holds no user name and no document path; the `Inventory` trait is in core and
+  has a fake; the app passes the implementation to the `easydeck-mcp` server when it starts
+  it; `easydeck-mcp` has no OS code; the implementer states the settings key name in the PR.
 - **Acceptance:** with the setting off, the tool is not in the tool list; with it on, the
   fixture Steam library yields the expected games.
 - **Tests:** parser tests on fixture files; the off-by-default test.
