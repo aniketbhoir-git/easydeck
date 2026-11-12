@@ -18,7 +18,12 @@ impl DeckStore {
                 format!("could not read {}: {e}", path.display()),
             )]
         })?;
-        let value: Value = serde_json::from_str(&text)
+        Self::load_str(&text)
+    }
+
+    /// Parse, validate and type deck JSON that is already in memory (for example a bundled deck).
+    pub fn load_str(text: &str) -> Result<Deck, Vec<ValidationError>> {
+        let value: Value = serde_json::from_str(text)
             .map_err(|e| vec![ValidationError::new("", format!("not valid JSON: {e}"))])?;
         check(&value)
     }
