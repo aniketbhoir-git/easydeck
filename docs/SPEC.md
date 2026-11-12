@@ -324,15 +324,15 @@ All loops stop when the app exits and when the trigger process of the page stops
 |---|---|
 | R0 Define | Spec, schema draft, docs, backlog, CI (done) |
 | A Architecture | Focus spike, workspace split, generated contract, `xtask`, guardrail checks, probe, UI harness, approval ledger, layout rules |
-| R1 App shell | Scaffold, deck load + validate (done); renderer (R1-3, in review); kiosk window, launch runner |
+| R1 App shell | Scaffold, deck load + validate, renderer (done); kiosk window, launch runner |
 | R2 Live widgets | System stats, gauge / status / text, system media session, web embed |
 | R3 Macros + game detection | Key macros, process watch, context pages, recent-first ordering |
 | R4 GUI editor | Add, move, resize, edit, delete and save tiles in the app |
 | R5 Export and import | Deck diff, `.easydeck` packs with preview and the review screen |
 | R6 AI layer | MCP server, proposal review, `FOR_LLMS.md`, the `system_inventory` tool |
 
-Order: A-1 to A-7 first, then milestone M1 (one thin slice end to end: R1-4, R1-5, R2-1,
-R2-2, R3-1, R5-1, A-8, R6-1, R6-2), then milestone M2. A-9 follows A-3. The issue order is in
+Order: A-1 to A-4, A-6 and A-7 first, then milestone M1 (one thin slice end to end: R1-4, R1-5, R2-1,
+R2-2, R3-1, R5-1, A-8, R6-1, R6-2), then A-5, then milestone M2. A-9 follows A-3. The issue order is in
 `docs/ISSUE-BACKLOG.md`. Out of v1: see §1.3.
 
 ## 8. Testing strategy

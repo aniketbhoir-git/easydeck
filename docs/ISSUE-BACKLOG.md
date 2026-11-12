@@ -32,13 +32,15 @@ Status values below: `done`, `ready` (contract merged), `next` (maintainer works
 ```
 A-1 focus spike ───────────────────────────────┐ (parallel with A-2 … A-7)
 A-2 workspace ─► A-3 generated contract ─► A-9 layout rules
-       ├─► A-4 xtask + AGENTS.md + Linux CI ─► A-5 guardrail checks
+       ├─► A-4 xtask + AGENTS.md + Linux CI
        ├─► A-6 probe + platform job  (needs the A-1 answer on CI runners)
        └─► A-7 UI harness
 
 Milestone M1 — one thin slice, end to end:
   R1-4 kiosk (needs A-1) · R1-5 launch (needs A-6) · R2-1 stats ─► R2-2 gauge
   R3-1 macros (needs A-6) · R5-1 diff ─► A-8 risk + ledger ─► R6-1 MCP ─► R6-2 approve UI
+
+After M1: A-5 guardrail checks (needs A-4).
 
 Milestone M2 — breadth, open to the community:
   R2-3 media · R2-4 embed · R3-2 game watch ─► R3-3 context pages · R3-4 recent order
@@ -75,7 +77,7 @@ Milestone M2 — breadth, open to the community:
 
 ### Issue A-2 — Cargo workspace split (SPEC §3)
 - **Labels:** `verify:auto`, `review:owner`, `size:M` · **Status:** next
-- **Depends on:** PR #28 (R1-3) merged
+- **Depends on:** R1-3 (merged in PR #28)
 - **Goal:** move to the workspace layout of SPEC §3 with no behavior change.
 - **Files:**
   - **Create:** root `Cargo.toml` (workspace, shared lints and dependency versions);
@@ -83,8 +85,9 @@ Milestone M2 — breadth, open to the community:
     workspace); `crates/easydeck-core/src/lib.rs` (`pub mod deck;`);
     `crates/easydeck-core/src/deck/` (from `src-tauri/src/deck/*`);
     `crates/easydeck-core/tests/deck_load.rs` (from `src-tauri/tests/deck_load.rs`);
-    `tests/fixtures/` (from `src-tauri/tests/fixtures/`); empty crates
-    `easydeck-platform-windows`, `easydeck-mcp`, `easydeck-cli`.
+    `tests/fixtures/` (from `src-tauri/tests/fixtures/`). A-2 creates no empty crate:
+    `easydeck-cli` arrives with A-3, `easydeck-mcp` with R6-1, and
+    `easydeck-platform-windows` with the first issue that needs it.
   - **Modify:** `src-tauri/Cargo.toml` (package `easydeck-app`, depends on `easydeck-core`;
     the exe name stays `easydeck`); `src-tauri/src/lib.rs`; `.github/workflows/ci.yml`.
   - **Delete:** `src-tauri/src/deck/`, `src-tauri/tests/`, `src-tauri/Cargo.lock`.
@@ -93,8 +96,8 @@ Milestone M2 — breadth, open to the community:
   (the IPC error shape) stays in `src-tauri/src/error.rs` and stays JSON-compatible; core
   keeps its own error types and the app maps them; one `Cargo.lock` at the root; the
   `windows` CI job keeps its name (branch protection uses it) and runs the whole workspace; a
-  new `core-linux` job runs `cargo test -p easydeck-core -p easydeck-mcp -p easydeck-cli` on
-  `ubuntu-latest`. The binary of `easydeck-cli` has the name `easydeck-cli`.
+  new `core-linux` job runs `cargo test -p easydeck-core` on `ubuntu-latest`. The issue that
+  creates `easydeck-cli` or `easydeck-mcp` adds its `-p` argument to this job.
   Fix the paths that the move breaks. In `validate.rs`, the `include_str!` path becomes
   `../../../../schema/deck.schema.json`. In `deck_load.rs`, the fixtures are at
   `CARGO_MANIFEST_DIR/../../tests/fixtures`, the starter deck is at
@@ -108,7 +111,7 @@ Milestone M2 — breadth, open to the community:
   The job id `windows` does not change. Delete the header comment of `ci.yml` about the
   `hashFiles` guard. The `core-linux` job has these steps: `actions/checkout@v5`,
   `dtolnay/rust-toolchain@stable`, `Swatinem/rust-cache@v2` (`workspaces: .`), then
-  `cargo test --locked -p easydeck-core -p easydeck-mcp -p easydeck-cli`. A-2 adds no shared
+  `cargo test --locked -p easydeck-core`. A-2 adds no shared
   lint; the workspace manifest holds only the shared dependency versions.
 - **Acceptance:** `cargo test --workspace` runs no fewer tests than `cargo test` in
   `src-tauri` ran before the move; the PR states both counts; `npm run tauri dev` still shows
@@ -120,13 +123,14 @@ Milestone M2 — breadth, open to the community:
 - **Depends on:** A-2
 - **Goal:** the Rust deck types generate the JSON Schema and the TypeScript types.
 - **Files:**
-  - **Create:** `ui/src/lib/generated/` (generated); the `gen` and `validate` code in
-    `crates/easydeck-cli`.
+  - **Create:** `ui/src/lib/generated/` (generated); the crate `crates/easydeck-cli` (binary
+    name `easydeck-cli`) with the `gen` and `validate` code.
   - **Modify:** `crates/easydeck-core/src/deck/model.rs` (derive `JsonSchema` and `TS`, doc
     comments, constraints as attributes); `schema/deck.schema.json` (generated);
     `ui/src/lib/api.ts` (use the generated types; keep the `invoke` wrappers); root
     `Cargo.toml` and `crates/easydeck-core/Cargo.toml` (`schemars`, `ts-rs`, and `insta` as a
-    dev dependency; SPEC §2 approves all three); `.github/workflows/ci.yml`;
+    dev dependency; SPEC §2 approves all three); `.github/workflows/ci.yml` (also add
+    `-p easydeck-cli` to the `core-linux` test step);
     `tests/fixtures/*.deck.json` (delete the `"provider"` line from each `media` widget).
   - **Create also:** `tests/fixtures/invalid_widget_unknown_field.deck.json` (expected path
     `/pages/0/widgets/0`).
@@ -177,7 +181,7 @@ Milestone M2 — breadth, open to the community:
 
 ### Issue A-5 — Guardrail checks in CI (SPEC §9)
 - **Labels:** `verify:auto`, `review:owner`, `size:M` · **Status:** blocked
-- **Depends on:** A-4
+- **Depends on:** A-4. It runs after milestone M1.
 - **Goal:** the SPEC §9 table is enforced by CI.
 - **Files:**
   - **Create:** `deny.toml`, `.github/CODEOWNERS`, an `xtask` source check.
@@ -218,7 +222,7 @@ Milestone M2 — breadth, open to the community:
 
 ### Issue A-7 — UI test harness (SPEC §8.2)
 - **Labels:** `verify:auto`, `size:M` · **Status:** blocked
-- **Depends on:** PR #28 (R1-3) merged
+- **Depends on:** R1-3 (merged in PR #28)
 - **Goal:** UI work is proven in CI with behavior tests and screenshots.
 - **Files:**
   - **Create:** `ui/playwright.config.ts`, `ui/e2e/`, `ui/src/lib/mock-ipc.ts`.
@@ -277,7 +281,7 @@ Milestone M2 — breadth, open to the community:
 
 ### Issue R1-1 — Tauri scaffold + CI wiring · **Status:** done (PR #26)
 ### Issue R1-2 — Deck model, load and validate · **Status:** done (PR #27)
-### Issue R1-3 — Deck renderer and launch tiles UI · **Status:** in review (PR #28)
+### Issue R1-3 — Deck renderer and launch tiles UI · **Status:** done (PR #28)
 
 ### Issue R1-4 — Kiosk window on a chosen display (SPEC §1.2)
 - **Labels:** `verify:human`, `review:owner`, `size:M` · **Status:** blocked
