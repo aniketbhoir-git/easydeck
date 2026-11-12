@@ -123,7 +123,25 @@ Method: the workflow `.github/workflows/spike-a1.yml` runs on every push to the 
 Log to read: `a1-selftest.json` (`keys_reached_webview`, `ll_hook_keys`, `details`) and
 `a1-tauri-driver.json` (`session_created`).
 
-**Observed result:** pending
+**Observed result** (workflow run 43236018438, runner `windows-latest`, WebView2 runtime
+156.0.4314.58; the same selftest result came in the two earlier runs):
+
+- `SendInput` to our own window: **yes**. The spike was the foreground window (`SetForegroundWindow`
+  returned true, `is_ours` true, process elevated as `runneradmin`). All six scan-code events
+  returned `sent` 1 with `last_error` 0, and the page received `keydown` and `keyup` for
+  `Digit1`, `Digit2` and `Digit3` (`keys_reached_webview` true, exit code 0, about 5 s).
+  `ll_hook_keys` was empty in every run: the low-level hook, installed from `setup`, never saw an
+  event. The cause is not examined; the WebView result above does not depend on it. This shows
+  that a hosted runner has an interactive desktop that accepts injected input to a window of the
+  same process. It does not show that input reaches a second program (the probe, SPEC §8.3);
+  that needs a test with `easydeck-probe`.
+- `tauri-driver`: **no session** in the best-effort step (failed in all three runs, which also
+  tried a visible start window). `msedgedriver` 156 (downloaded for the installed runtime) answered
+  `session not created: DevToolsActivePort file doesn't exist`. A direct check showed that the
+  spike with `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` did not open that
+  port in 8 s. Cause unconfirmed. An untested guess: the environment variable is not honoured by this
+  Tauri/wry window setup, or the elevated runner session blocks it. Not pursued further in
+  this spike; A-6 must solve it before the smoke test relies on `tauri-driver`.
 
 ## Decision
 
