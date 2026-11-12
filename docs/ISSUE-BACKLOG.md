@@ -143,7 +143,9 @@ Milestone M2 — breadth, open to the community:
   (`unevaluatedProperties` in the v3 schema; the widget type is a flattened enum). Each gets
   a fixture. Core embeds the committed `schema/deck.schema.json` with `include_str!`.
   `jsonschema` stays a run-time dependency. The CLI parses its arguments with
-  `std::env::args`; it adds no dependency.
+  `std::env::args`; it adds no dependency. `ValidationError` gets `rule: String` and
+  `fix: String` next to `path` and `message`. The CLI prints
+  `<file>: <path>: <rule>: <message> (fix: <fix>)`.
 - **Acceptance:** after the `provider` edit, every fixture in `tests/fixtures/` gives the
   same verdict as before (valid stays valid, each invalid one fails on the same path);
   `examples/` validates; in `core-linux`, CI runs
