@@ -1,9 +1,5 @@
 name: CI
 
-# NOTE: this workflow targets the layout that issue R1-1 creates (`src-tauri/` Cargo
-# workspace and `ui/` with a package-lock.json). Until R1-1 merges, the `windows` job
-# skips itself (see the `hashFiles` guard) and only the `schema` job runs.
-
 on:
   push:
     branches: [main]
@@ -33,21 +29,8 @@ jobs:
             process.exit(bad ? 1 : 0);
           "
 
-  # hashFiles() is not allowed in a job-level `if`, so a small job checks for the app first.
-  detect:
-    runs-on: ubuntu-latest
-    outputs:
-      has_app: ${{ steps.check.outputs.has_app }}
-    steps:
-      - uses: actions/checkout@v5
-      - id: check
-        run: |
-          if [ -f src-tauri/Cargo.toml ]; then echo "has_app=true" >> "$GITHUB_OUTPUT"; else echo "has_app=false" >> "$GITHUB_OUTPUT"; fi
-
   windows:
     runs-on: windows-latest
-    needs: detect
-    if: needs.detect.outputs.has_app == 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -60,7 +43,7 @@ jobs:
           components: clippy,rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: .
       - name: Build UI
         working-directory: ui
         run: |
@@ -70,14 +53,21 @@ jobs:
         working-directory: ui
         run: npx vitest run
       - name: Format
-        working-directory: src-tauri
         run: cargo fmt --all -- --check
       - name: Clippy
-        working-directory: src-tauri
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - name: Build
-        working-directory: src-tauri
-        run: cargo build --locked
+        run: cargo build --workspace --locked
       - name: Test
-        working-directory: src-tauri
-        run: cargo test --locked
+        run: cargo test --workspace --locked
+
+  core-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+      - name: Test core
+        run: cargo test --locked -p easydeck-core

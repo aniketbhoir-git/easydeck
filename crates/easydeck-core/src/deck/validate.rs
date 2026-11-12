@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 /// The deck format version this build understands.
 pub const SUPPORTED_VERSION: u64 = 1;
 
-static SCHEMA_SRC: &str = include_str!("../../../schema/deck.schema.json");
+static SCHEMA_SRC: &str = include_str!("../../../../schema/deck.schema.json");
 
 /// One problem in a deck. `path` is a JSON pointer ("" for the whole file).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
