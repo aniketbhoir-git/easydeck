@@ -58,7 +58,15 @@ jobs:
           Expand-Archive "$dir\d.zip" -DestinationPath $dir -Force
           $app = (Resolve-Path .\target\release\easydeck-a1-focus-spike.exe).Path
           $env:EASYDECK_SPIKE_VISIBLE = '1'
-          $drv = Start-Process tauri-driver -ArgumentList '--native-driver',"$dir\msedgedriver.exe" -PassThru
+          # Diagnostic: does the app honour the WebView2 debugging-port variable at all?
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
+          $probe = Start-Process $app -PassThru
+          Start-Sleep -Seconds 8
+          try { Write-Host ('debug port: ' + (Invoke-RestMethod http://127.0.0.1:9222/json/version).Browser) } catch { Write-Host "debug port: no answer ($_)" }
+          Stop-Process -Id $probe.Id -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 2
+          Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+          $drv = Start-Process tauri-driver -ArgumentList '--native-driver',"$dir\msedgedriver.exe" -PassThru -RedirectStandardOutput "$dir\td.out" -RedirectStandardError "$dir\td.err"
           Start-Sleep -Seconds 5
           $caps = @{ capabilities = @{ alwaysMatch = @{ browserName = 'wry'; 'tauri:options' = @{ application = $app } } } } | ConvertTo-Json -Depth 6
           try {
@@ -68,6 +76,7 @@ jobs:
             @{ session_created = [bool]$sid; webview2 = $ver } | ConvertTo-Json | Set-Content $res
             if ($sid) { Invoke-RestMethod -Method Delete -Uri "http://127.0.0.1:4444/session/$sid" | Out-Null }
           } finally {
+            Get-Content "$dir\td.out","$dir\td.err" -ErrorAction SilentlyContinue | Select-Object -First 30
             Stop-Process -Id $drv.Id -Force -ErrorAction SilentlyContinue
             Get-Process easydeck-a1-focus-spike -ErrorAction SilentlyContinue | Stop-Process -Force
           }
