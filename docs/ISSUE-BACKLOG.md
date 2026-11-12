@@ -4,7 +4,7 @@ Backlog v4 (2026-11-11). It follows `docs/SPEC.md` v4. Each issue is self-contai
 that reads `AGENTS.md` (or `CLAUDE.md`), SPEC §0 and the issue can do the work.
 
 GitHub issues #1–#25 map to R1-1 … R7-3 in order. Module A issues and R6-4 are new in v4 and
-get GitHub issues after this backlog merges.
+are GitHub issues #30–#39 (A-1 … A-9, then R6-4).
 
 ## Labels
 
@@ -79,7 +79,9 @@ Milestone M2 — breadth, open to the community:
 - **Goal:** move to the workspace layout of SPEC §3 with no behavior change.
 - **Files:**
   - **Create:** root `Cargo.toml` (workspace, shared lints and dependency versions);
-    `crates/easydeck-core/` (from `src-tauri/src/deck/*`);
+    `crates/easydeck-core/Cargo.toml` (`serde`, `serde_json` and `jsonschema` from the
+    workspace); `crates/easydeck-core/src/lib.rs` (`pub mod deck;`);
+    `crates/easydeck-core/src/deck/` (from `src-tauri/src/deck/*`);
     `crates/easydeck-core/tests/deck_load.rs` (from `src-tauri/tests/deck_load.rs`);
     `tests/fixtures/` (from `src-tauri/tests/fixtures/`); empty crates
     `easydeck-platform-windows`, `easydeck-mcp`, `easydeck-cli`.
@@ -103,7 +105,11 @@ Milestone M2 — breadth, open to the community:
   `cargo clippy --workspace --all-targets --all-features -- -D warnings`,
   `cargo build --workspace --locked`, `cargo test --workspace --locked`. Set the rust-cache
   `workspaces` to `.`. Delete the `detect` job and the `needs` and `if` lines that use it.
-  The job id `windows` does not change.
+  The job id `windows` does not change. Delete the header comment of `ci.yml` about the
+  `hashFiles` guard. The `core-linux` job has these steps: `actions/checkout@v5`,
+  `dtolnay/rust-toolchain@stable`, `Swatinem/rust-cache@v2` (`workspaces: .`), then
+  `cargo test --locked -p easydeck-core -p easydeck-mcp -p easydeck-cli`. A-2 adds no shared
+  lint; the workspace manifest holds only the shared dependency versions.
 - **Acceptance:** `cargo test --workspace` runs no fewer tests than `cargo test` in
   `src-tauri` ran before the move; the PR states both counts; `npm run tauri dev` still shows
   the starter deck; both CI jobs are green.
@@ -120,7 +126,10 @@ Milestone M2 — breadth, open to the community:
     comments, constraints as attributes); `schema/deck.schema.json` (generated);
     `ui/src/lib/api.ts` (use the generated types; keep the `invoke` wrappers); root
     `Cargo.toml` and `crates/easydeck-core/Cargo.toml` (`schemars`, `ts-rs`, and `insta` as a
-    dev dependency; SPEC §2 approves all three); `.github/workflows/ci.yml`.
+    dev dependency; SPEC §2 approves all three); `.github/workflows/ci.yml`;
+    `tests/fixtures/*.deck.json` (delete the `"provider"` line from each `media` widget).
+  - **Create also:** `tests/fixtures/invalid_widget_unknown_field.deck.json` (expected path
+    `/pages/0/widgets/0`).
 - **Requirements:** `easydeck-cli gen` writes both outputs; `easydeck-cli gen --check` exits
   non-zero on drift; `cargo xtask gen` (A-4) runs this code, and contributors and CI use the
   `xtask` form after A-4; `easydeck-cli validate <files>` prints one line per error (path,
@@ -133,11 +142,14 @@ Milestone M2 — breadth, open to the community:
   (`appId`, `path`, `target`; an `if/then` in the v3 schema), and unknown fields on a widget
   (`unevaluatedProperties` in the v3 schema; the widget type is a flattened enum). Each gets
   a fixture. Core embeds the committed `schema/deck.schema.json` with `include_str!`.
-  `jsonschema` stays a run-time dependency.
-- **Acceptance:** every fixture in `tests/fixtures/` gives the same verdict as before (valid
-  stays valid, each invalid one fails on the same path); `examples/` validates; the CI
-  `schema` job (ajv) is replaced by `easydeck-cli validate examples/*.deck.json` in
-  `core-linux`.
+  `jsonschema` stays a run-time dependency. The CLI parses its arguments with
+  `std::env::args`; it adds no dependency.
+- **Acceptance:** after the `provider` edit, every fixture in `tests/fixtures/` gives the
+  same verdict as before (valid stays valid, each invalid one fails on the same path);
+  `examples/` validates; in `core-linux`, CI runs
+  `cargo run -p easydeck-cli --locked -- gen --check` and
+  `cargo run -p easydeck-cli --locked -- validate examples/*.deck.json`; the `schema` job
+  (ajv) is deleted.
 - **Tests:** the fixture table; `insta` snapshots of the validator messages for each invalid
   fixture.
 

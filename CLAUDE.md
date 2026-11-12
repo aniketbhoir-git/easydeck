@@ -11,8 +11,9 @@ Open-source Rust + Tauri 2 desktop app that turns a small touch monitor into a d
   do not edit it by hand then)
 
 ## Non-negotiable rules (SPEC §0)
-- An LLM or an imported file changes the deck file only, never app code. Every such change is
-  a proposal or a pack that the user approves in the app first.
+- An LLM proposes a new deck file only. It never changes app code. An imported pack changes
+  the deck file only. The user approves each proposal or pack in the app first. A proposal
+  that fails validation changes nothing.
 - Nothing risky runs before the user approves it. Launch, key macro, shell and network
   endpoints are risk items (SPEC §4.3); an unapproved one is inert.
 - Shell actions run from an allow-list only.
@@ -49,12 +50,13 @@ rule blocks an issue. Send the question, the options and the minimum facts.
 
 ## Status
 - Done: R0 (define), R1-1 (PR #26), R1-2 (PR #27). R1-3 is in PR #28.
-- Architecture review v4 merged as docs only. No code follows v4 yet: the code is still one
+- Architecture review v4 is docs only (PR #29). No code follows v4 yet: the code is still one
   crate in `src-tauri/`, and the schema is still hand-written.
 - Next, in this order: **A-2** (workspace split, after PR #28 merges), **A-3**, **A-4**,
   **A-5**, **A-7**. **A-1** (focus spike) runs in parallel and needs the maintainer at the
   touch monitor. **A-6** waits for the A-1 answer.
-- GitHub issues for A-1 … A-9 and R6-4 do not exist yet. #23–#25 (R7) need the `deferred` label.
+- GitHub issues: A-1 … A-9 are #30–#38, R6-4 is #39. #23–#25 (R7) carry the `deferred` label.
+- `position` stays required until A-9.
 
 ## Git workflow
 - `main` is protected: the `windows` CI check must pass; no force pushes. Keep that job name.
@@ -81,7 +83,8 @@ rule blocks an issue. Send the question, the options and the minimum facts.
   action and source traits, packs. No Tauri, no `windows` crate.
 - `crates/easydeck-platform-windows/` — display, kiosk, opener, keys, processes, stats, media.
 - `crates/easydeck-mcp/` — local MCP server, tools, proposal queue.
-- `crates/easydeck-cli/` — `validate`, `diff`, `pack`, `gen`.
+- `crates/easydeck-cli/` — binary `easydeck-cli`: `validate`, `diff`, `pack`, `gen`. The app
+  exe stays `easydeck`. Contributors and CI run `gen` through `cargo xtask gen`.
 - `crates/easydeck-probe/` — test target for real launches and keys.
 - `src-tauri/` — the Tauri app: window and IPC.
 - `xtask/` — `cargo xtask check | gen`.
