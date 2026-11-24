@@ -20,3 +20,8 @@ src-tauri/gen/schemas/
 .idea/
 Thumbs.db
 .DS_Store
+
+# UI e2e
+ui/dist-e2e/
+ui/test-results/
+ui/playwright-report/
