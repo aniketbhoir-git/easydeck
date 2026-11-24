@@ -1,0 +1,9 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+description = "EasyDeck developer commands: cargo xtask check | gen"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[dependencies]

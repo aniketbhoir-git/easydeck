@@ -580,14 +580,21 @@
         {
           "description": "A label, a clock or a date.",
           "properties": {
-            "format": {
-              "description": "Clock or date format pattern. At most 40 characters.",
-              "maxLength": 40,
-              "type": "string"
+            "hour12": {
+              "description": "Clock only. `true` shows 12-hour time with AM or PM. `false` shows 24-hour time.\nOmit it to follow the system setting.",
+              "type": "boolean"
             },
             "kind": {
               "$ref": "#/$defs/TextKind",
               "description": "`label` shows `text`. `clock` and `date` show the time. Defaults to `label`."
+            },
+            "seconds": {
+              "description": "Clock only. `true` shows seconds. Defaults to `false`.",
+              "type": "boolean"
+            },
+            "showDate": {
+              "description": "Clock only. `true` shows the date in a smaller line under the time. Defaults to\n`false`. The `date` kind always shows the date.",
+              "type": "boolean"
             },
             "text": {
               "description": "Text for the `label` kind. At most 200 characters.",

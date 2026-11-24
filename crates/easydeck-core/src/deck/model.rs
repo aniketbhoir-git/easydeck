@@ -254,11 +254,20 @@ pub enum WidgetKind {
         #[schemars(length(max = 200))]
         #[ts(optional)]
         text: Option<String>,
-        /// Clock or date format pattern. At most 40 characters.
+        /// Clock only. `true` shows 12-hour time with AM or PM. `false` shows 24-hour time.
+        /// Omit it to follow the system setting.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        #[schemars(length(max = 40))]
         #[ts(optional)]
-        format: Option<String>,
+        hour12: Option<bool>,
+        /// Clock only. `true` shows seconds. Defaults to `false`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        seconds: Option<bool>,
+        /// Clock only. `true` shows the date in a smaller line under the time. Defaults to
+        /// `false`. The `date` kind always shows the date.
+        #[serde(rename = "showDate", default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, rename = "showDate")]
+        show_date: Option<bool>,
     },
     /// Controls the system media session (any player that reports to Windows). It has no
     /// provider and no volume control.
