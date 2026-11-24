@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "name": "Clock deck",
+  "settings": { "homePage": "home" },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": { "columns": 4, "rows": 2 },
+      "widgets": [
+        { "id": "clock-24", "type": "text", "kind": "clock", "seconds": true, "hour12": false, "showDate": true, "position": { "x": 0, "y": 0, "w": 2 } },
+        { "id": "clock-12", "type": "text", "kind": "clock", "hour12": true, "position": { "x": 2, "y": 0 } },
+        { "id": "today", "type": "text", "kind": "date", "position": { "x": 3, "y": 0 } },
+        { "id": "hello", "type": "text", "kind": "label", "text": "Hello", "position": { "x": 0, "y": 1 } }
+      ]
+    }
+  ]
+}

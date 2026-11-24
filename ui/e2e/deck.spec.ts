@@ -2,17 +2,27 @@ import { expect, test, type Page } from '@playwright/test'
 
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __ipcCalls: { cmd: string; args: unknown }[] }).__ipcCalls)
 
+// Frozen so the clock tile and the screenshots are stable.
+export const FIXED_TIME = new Date('2026-11-25T14:07:00Z')
+
 test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(FIXED_TIME)
   await page.goto('/')
   await expect(page.locator('[data-widget-id]').first()).toBeVisible()
 })
 
 test('the fixture deck (ui/src/lib/mock-ipc.ts) renders its home page', async ({ page }) => {
   await expect(page.locator('[data-widget-id]')).toHaveCount(4)
-  for (const label of ['Clock', 'CPU', 'Game', 'Notes']) {
+  for (const label of ['CPU', 'Game', 'Notes']) {
     await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible()
   }
   await expect(page.getByRole('button', { name: 'In game', exact: true })).toBeVisible()
+})
+
+test('the clock tile shows the fixed time and date', async ({ page }) => {
+  const tile = page.locator('[data-widget-id="clock"]')
+  await expect(tile.getByTestId('clock-time')).toHaveText(/^2:07\sPM$/)
+  await expect(tile.getByTestId('clock-date')).toHaveText('Wed, Nov 25')
 })
 
 test('a tap calls run_action exactly once', async ({ page }) => {

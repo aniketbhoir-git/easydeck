@@ -88,9 +88,19 @@ kind?: TextKind,
  */
 text?: string, 
 /**
- * Clock or date format pattern. At most 40 characters.
+ * Clock only. `true` shows 12-hour time with AM or PM. `false` shows 24-hour time.
+ * Omit it to follow the system setting.
  */
-format?: string, } | { "type": "media", 
+hour12?: boolean, 
+/**
+ * Clock only. `true` shows seconds. Defaults to `false`.
+ */
+seconds?: boolean, 
+/**
+ * Clock only. `true` shows the date in a smaller line under the time. Defaults to
+ * `false`. The `date` kind always shows the date.
+ */
+showDate?: boolean, } | { "type": "media", 
 /**
  * Controls to show. Each appears at most once.
  */
