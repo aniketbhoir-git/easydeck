@@ -342,9 +342,9 @@ Milestone M2 — breadth, open to the community:
 - **Files:** `ui/src/components/{Gauge,Status,TextWidget}.svelte`, a `sourceStore` that
   subscribes to `source:<id>` events.
 - **Requirements:** gauge draws an arc or bar between `min` and `max` with `unit`; status
-  shows OK or problem from `okWhen`; clock updates each second and honors `format`; a
-  neutral "no data" state when the source is silent.
-- **Acceptance:** the starter deck shows a live CPU gauge and a ticking clock.
+  shows OK or problem from `okWhen`; a neutral "no data" state when the source is silent.
+- **Acceptance:** the starter deck shows a live CPU gauge. (The clock, date and label moved
+  to G-1, #44, done in PR #53.)
 - **Tests:** `vitest` for value-to-angle mapping and the "no data" state; Playwright
   screenshots with a fixed clock and fixed source values.
 
