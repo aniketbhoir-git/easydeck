@@ -184,7 +184,9 @@ mod tests {
             kind: WidgetKind::Text {
                 kind: None,
                 text: None,
-                format: None,
+                hour12: None,
+                seconds: None,
+                show_date: None,
             },
         }
     }
