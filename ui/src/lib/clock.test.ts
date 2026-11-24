@@ -19,6 +19,11 @@ describe('formatClock', () => {
   it('shows midnight as 00:05 in 24-hour mode', () => {
     expect(formatClock(new Date('2026-11-25T00:05:00Z'), { ...base, hour12: false }).time).toBe('00:05')
   })
+  it('shows 12-hour midnight and noon', () => {
+    const t = (iso: string) => flat(formatClock(new Date(iso), { ...base, hour12: true }).time)
+    expect(t('2026-11-25T00:05:00Z')).toBe('12:05 AM')
+    expect(t('2026-11-25T12:00:00Z')).toBe('12:00 PM')
+  })
   it('formats the date line', () => {
     expect(formatClock(at, base).date).toBe('Wed, Nov 25')
   })
