@@ -30,9 +30,9 @@ contributor reads this file first.
 Rust stable · Tauri 2 · Svelte/TypeScript · tokio · windows-rs · jsonschema · schemars · ts-rs
 
 ## Commands
-- `cargo xtask check` — everything the Windows CI job runs: fmt check, clippy with
-  `-D warnings`, workspace tests, `gen --check`, example validation, then in `ui/`
-  `npm ci`, `npm run check`, `npm test`, `npm run build`. It stops at the first failing step
+- `cargo xtask check` — everything the Windows CI job runs: first in `ui/` `npm ci`,
+  `npm run check`, `npm test`, `npm run build` (the app embeds `ui/dist`), then fmt check,
+  clippy with `-D warnings`, workspace tests, `gen --check` and example validation. It stops at the first failing step
   and names it. Run it before you push.
 - `cargo xtask check --core` — the Linux subset (core and CLI crates only, no UI). CI job
   `core-linux` runs it.

@@ -129,7 +129,7 @@ fn check(root: &Path, core_only: bool) -> Result<(), String> {
     step("fmt", root, &cargo, &["fmt", "--all", "--", "--check"])?;
     if core_only {
         let pkgs = ["-p", "easydeck-core", "-p", "easydeck-cli"];
-        let mut clippy = vec!["clippy"];
+        let mut clippy = vec!["clippy", "--locked"];
         clippy.extend(pkgs);
         clippy.extend(["--all-targets", "--all-features", "--", "-D", "warnings"]);
         step("clippy", root, &cargo, &clippy)?;
@@ -143,6 +143,7 @@ fn check(root: &Path, core_only: bool) -> Result<(), String> {
             &cargo,
             &[
                 "clippy",
+                "--locked",
                 "--workspace",
                 "--all-targets",
                 "--all-features",

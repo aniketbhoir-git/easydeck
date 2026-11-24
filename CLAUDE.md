@@ -20,12 +20,12 @@ crate boundary in SPEC §3 does not hold, a dependency outside SPEC §2 is neede
 rule blocks an issue. Send the question, the options and the minimum facts.
 
 ## Status
-- Done: R0 (define), R1-1 (PR #26), R1-2 (PR #27), R1-3 (PR #28).
-- Architecture review v4 is docs only (PR #29). No code follows v4 yet: the code is still one
-  crate in `src-tauri/`, and the schema is still hand-written.
-- Next, in this order: **A-2** (workspace split; it creates only
-  `easydeck-core`), **A-3**, **A-4**, **A-7**. **A-5** runs after milestone M1. **A-1** (focus spike) runs in parallel and needs the maintainer at the
-  touch monitor. **A-6** waits for the A-1 answer.
+- Done: R0, R1-1 (#26), R1-2 (#27), R1-3 (#28), A-2 (#41), A-3 (#50), A-7 (#51), A-4.
+- GTAVI mode (owner instruction, 2026-11-25): the build orchestrator keeps building and
+  self-merges; state, decisions and the owner's test queue are in `docs/HANDOFF.md`.
+- Next: A-9 (layout), then the gadget issues G-1 … G-6 (#44–#49) with R2-1, R2-2, R2-3.
+  **A-5** runs after milestone M1. **A-1** (focus spike) needs the maintainer at the touch
+  monitor. **A-6** waits for the A-1 answer.
 - GitHub issues: A-1 … A-9 are #30–#38, R6-4 is #39. #23–#25 (R7) carry the `deferred` label.
 - `position` stays required until A-9.
 
