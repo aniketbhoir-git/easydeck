@@ -22,6 +22,7 @@ tauri-build = "2"
 
 [dependencies]
 easydeck-core = { path = "../crates/easydeck-core" }
+easydeck-platform-windows = { path = "../crates/easydeck-platform-windows" }
 tauri = "2"
 serde = { workspace = true }
 serde_json = { workspace = true }
