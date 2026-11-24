@@ -1,0 +1,29 @@
+name: UI snapshots
+
+# Maintainer-run. Regenerates the Playwright screenshot baselines inside the same container
+# as the `ui-linux` job and uploads them as an artifact. Download it, copy the files into
+# ui/e2e/__screenshots__/ and commit them.
+on:
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.65.1-noble
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Install
+        working-directory: ui
+        run: npm ci
+      - name: Make baselines
+        working-directory: ui
+        run: npx playwright test --update-snapshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-baselines
+          path: ui/e2e/__screenshots__/
