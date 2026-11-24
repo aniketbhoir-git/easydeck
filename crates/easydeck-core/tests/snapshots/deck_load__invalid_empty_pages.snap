@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages",
+    "rule": "schema/minItems",
+    "message": "[] has less than 1 item",
+    "fix": "change the number of list items to fit the limits in the schema"
+  }
+]

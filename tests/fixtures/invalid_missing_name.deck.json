@@ -126,7 +126,6 @@
         {
           "id": "p",
           "type": "media",
-          "provider": "spotify",
           "controls": [
             "play_pause",
             "next"

@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/0/label",
+    "rule": "schema/type",
+    "message": "null is not of type \"string\"",
+    "fix": "use a value of the type that the schema names"
+  }
+]

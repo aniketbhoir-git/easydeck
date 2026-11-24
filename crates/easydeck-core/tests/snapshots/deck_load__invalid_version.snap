@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/version",
+    "rule": "version",
+    "message": "unsupported deck version 2; this build supports 1",
+    "fix": "set \"version\" to 1"
+  }
+]

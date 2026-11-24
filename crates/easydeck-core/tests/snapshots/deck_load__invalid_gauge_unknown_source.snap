@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/1/source",
+    "rule": "unknown-source",
+    "message": "widget source \"nope\" is not defined in sources",
+    "fix": "use the id of a source in the sources map, or add the source"
+  }
+]

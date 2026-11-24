@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/0",
+    "rule": "unknown-field",
+    "message": "widget \"a\" has fields that its type does not define: colour",
+    "fix": "remove colour"
+  }
+]

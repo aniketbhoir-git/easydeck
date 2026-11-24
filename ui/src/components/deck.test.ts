@@ -7,9 +7,12 @@ vi.mock('@tauri-apps/api/core', () => ({ invoke: (...a: unknown[]) => invoke(...
 import Deck from './Deck.svelte'
 import type { Deck as DeckModel } from '../lib/api'
 
+const launch = { type: 'launch', kind: 'steam', appId: 1 } as const
+
 const deck: DeckModel = {
   version: 1,
   name: 'Test',
+  sources: {},
   settings: { homePage: 'home' },
   pages: [
     {
@@ -17,15 +20,15 @@ const deck: DeckModel = {
       title: 'Home',
       grid: { columns: 4, rows: 2 },
       widgets: [
-        { id: 'a', type: 'launch', label: 'Alpha', icon: 'A', position: { x: 0, y: 1 } },
-        { id: 'b', type: 'launch', label: 'Beta', position: { x: 2, y: 0, w: 2, h: 2 } },
+        { id: 'a', type: 'launch', action: launch, label: 'Alpha', icon: 'A', position: { x: 0, y: 1 } },
+        { id: 'b', type: 'launch', action: launch, label: 'Beta', position: { x: 2, y: 0, w: 2, h: 2 } },
       ],
     },
     {
       id: 'other',
       title: 'Other',
       grid: { columns: 1, rows: 1 },
-      widgets: [{ id: 'c', type: 'launch', label: 'Gamma', position: { x: 0, y: 0 } }],
+      widgets: [{ id: 'c', type: 'launch', action: launch, label: 'Gamma', position: { x: 0, y: 0 } }],
     },
   ],
 }
