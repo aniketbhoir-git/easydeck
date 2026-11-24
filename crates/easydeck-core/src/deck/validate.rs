@@ -1,6 +1,7 @@
 //! Validation: version gate, JSON Schema, then semantic checks the schema cannot express.
 
-use super::model::{Action, Deck, LaunchKind, Source, Widget, WidgetKind};
+use super::model::{Action, Deck, LaunchKind, Page, Source, Widget, WidgetKind};
+use crate::layout::{self, LayoutError};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -176,23 +177,6 @@ fn semantic_errors(deck: &Deck, raw: &Value) -> Vec<ValidationError> {
                 ));
             }
 
-            let p = widget.position;
-            let (right, bottom) = (
-                u64::from(p.x) + u64::from(p.w),
-                u64::from(p.y) + u64::from(p.h),
-            );
-            if right > u64::from(page.grid.columns) || bottom > u64::from(page.grid.rows) {
-                errors.push(ValidationError::new(
-                    format!("{base}/position"),
-                    "off-grid",
-                    format!(
-                        "widget \"{}\" spans to column {right}, row {bottom} but the grid is {}x{}",
-                        widget.id, page.grid.columns, page.grid.rows
-                    ),
-                    "move or shrink the widget, or make the grid larger",
-                ));
-            }
-
             if let WidgetKind::Gauge { source, .. } | WidgetKind::Status { source, .. } =
                 &widget.kind
             {
@@ -207,6 +191,9 @@ fn semantic_errors(deck: &Deck, raw: &Value) -> Vec<ValidationError> {
             }
 
             errors.extend(widget_errors(&base, widget, raw_widget(raw, pi, wi)));
+        }
+        if let Err(layout_errors) = layout::place(page) {
+            errors.extend(layout_errors.into_iter().map(|e| layout_error(pi, page, e)));
         }
     }
     errors
@@ -310,4 +297,32 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
         }
     }
     errors
+}
+
+/// Map a layout problem to a validation error. All three report at the widget's position.
+fn layout_error(page_index: usize, page: &Page, e: LayoutError) -> ValidationError {
+    let path = format!("/pages/{page_index}/widgets/{}/position", e.index());
+    match &e {
+        LayoutError::OffGrid { .. } => ValidationError::new(
+            path,
+            "off-grid",
+            format!(
+                "{e} but the grid is {}x{}",
+                page.grid.columns, page.grid.rows
+            ),
+            "move or shrink the widget, or make the grid larger",
+        ),
+        LayoutError::Overlap { .. } => ValidationError::new(
+            path,
+            "overlap",
+            e.to_string(),
+            "move one of the two widgets to free cells, make the grid larger, or remove its position so the app places it",
+        ),
+        LayoutError::NoSpace { .. } => ValidationError::new(
+            path.trim_end_matches("/position"),
+            "no-space",
+            e.to_string(),
+            "make the grid larger, remove a widget, or move the explicit positions so a cell is free",
+        ),
+    }
 }

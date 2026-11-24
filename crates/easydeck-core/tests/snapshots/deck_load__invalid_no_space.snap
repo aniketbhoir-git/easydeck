@@ -1,0 +1,18 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/1",
+    "rule": "no-space",
+    "message": "widget \"b\" has no position and no free cell is left",
+    "fix": "make the grid larger, remove a widget, or move the explicit positions so a cell is free"
+  },
+  {
+    "path": "/pages/0/widgets/2",
+    "rule": "no-space",
+    "message": "widget \"c\" has no position and no free cell is left",
+    "fix": "make the grid larger, remove a widget, or move the explicit positions so a cell is free"
+  }
+]
