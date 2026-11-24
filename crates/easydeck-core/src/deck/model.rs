@@ -254,11 +254,6 @@ pub enum WidgetKind {
         #[schemars(length(max = 200))]
         #[ts(optional)]
         text: Option<String>,
-        /// Clock or date format pattern. At most 40 characters.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        #[schemars(length(max = 40))]
-        #[ts(optional)]
-        format: Option<String>,
         /// Clock only. `true` shows 12-hour time with AM or PM. `false` shows 24-hour time.
         /// Omit it to follow the system setting.
         #[serde(default, skip_serializing_if = "Option::is_none")]

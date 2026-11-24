@@ -88,10 +88,6 @@ kind?: TextKind,
  */
 text?: string, 
 /**
- * Clock or date format pattern. At most 40 characters.
- */
-format?: string, 
-/**
  * Clock only. `true` shows 12-hour time with AM or PM. `false` shows 24-hour time.
  * Omit it to follow the system setting.
  */
