@@ -191,11 +191,33 @@ pub enum WidgetKind {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         order: Option<Order>,
+        /// Optional second action that runs on a long press (held at least 600 ms without
+        /// moving). It must be a `launch` action, like `action`. It is a risk item like
+        /// `action`: it runs only after the user approves it. A long press never also runs
+        /// `action`.
+        #[serde(
+            rename = "holdAction",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
+        #[ts(optional, rename = "holdAction")]
+        hold_action: Option<Action>,
     },
     /// Sends keys. `action` must be a `key_macro` action.
     Macro {
         /// The key macro to run on tap.
         action: Action,
+        /// Optional second action that runs on a long press (held at least 600 ms without
+        /// moving). It must be a `key_macro` action, like `action`. It is a risk item like
+        /// `action`: it runs only after the user approves it. A long press never also runs
+        /// `action`.
+        #[serde(
+            rename = "holdAction",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
+        #[ts(optional, rename = "holdAction")]
+        hold_action: Option<Action>,
     },
     /// A tile with two states. A tap runs `onAction` or `offAction`.
     Toggle {
@@ -266,7 +288,7 @@ pub enum WidgetKind {
         /// Clock only. `true` shows the date in a smaller line under the time. Defaults to
         /// `false`. The `date` kind always shows the date.
         #[serde(rename = "showDate", default, skip_serializing_if = "Option::is_none")]
-        #[ts(optional, rename = "showDate")]
+        #[ts(optional)]
         show_date: Option<bool>,
     },
     /// Controls the system media session (any player that reports to Windows). It has no

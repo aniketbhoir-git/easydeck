@@ -9,12 +9,23 @@ pub fn load_deck_impl(state: &AppState) -> Deck {
 }
 
 /// Stub: checks the widget exists and returns Ok. Never launches or sends anything.
-pub fn run_action_impl(state: &AppState, widget_id: &str) -> Result<(), AppError> {
-    if state.has_widget(widget_id) {
+/// `hold` selects the long-press `holdAction` instead of `action`; a widget without one is
+/// not found for a hold.
+pub fn run_action_impl(state: &AppState, widget_id: &str, hold: bool) -> Result<(), AppError> {
+    let found = if hold {
+        state.has_hold_action(widget_id)
+    } else {
+        state.has_widget(widget_id)
+    };
+    if found {
         Ok(())
     } else {
         Err(AppError::NotFound {
-            message: "no such widget".into(),
+            message: if hold {
+                "no such widget or no hold action".into()
+            } else {
+                "no such widget".into()
+            },
             detail: Some(widget_id.to_string()),
         })
     }
@@ -26,8 +37,12 @@ pub fn load_deck(state: tauri::State<'_, AppState>) -> Deck {
 }
 
 #[tauri::command]
-pub fn run_action(state: tauri::State<'_, AppState>, widget_id: String) -> Result<(), AppError> {
-    run_action_impl(&state, &widget_id)
+pub fn run_action(
+    state: tauri::State<'_, AppState>,
+    widget_id: String,
+    hold: Option<bool>,
+) -> Result<(), AppError> {
+    run_action_impl(&state, &widget_id, hold.unwrap_or(false))
 }
 
 #[cfg(test)]
@@ -43,13 +58,20 @@ mod tests {
     #[test]
     fn run_action_ok_for_known_widget() {
         let state = AppState::bundled().unwrap();
-        assert!(run_action_impl(&state, "notes").is_ok());
+        assert!(run_action_impl(&state, "notes", false).is_ok());
+    }
+
+    #[test]
+    fn run_action_hold_needs_a_hold_action() {
+        let state = AppState::bundled().unwrap();
+        let err = run_action_impl(&state, "notes", true).unwrap_err();
+        assert_eq!(err.code(), "not_found");
     }
 
     #[test]
     fn run_action_not_found_for_unknown_widget() {
         let state = AppState::bundled().unwrap();
-        let err = run_action_impl(&state, "ghost").unwrap_err();
+        let err = run_action_impl(&state, "ghost", false).unwrap_err();
         assert_eq!(err.code(), "not_found");
     }
 }

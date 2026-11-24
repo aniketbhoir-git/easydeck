@@ -222,34 +222,56 @@ fn raw_widget(raw: &Value, page: usize, widget: usize) -> Option<&Value> {
 fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<ValidationError> {
     let mut errors = Vec::new();
 
-    match &widget.kind {
-        WidgetKind::Launch { action, .. } if !matches!(action, Action::Launch { .. }) => {
+    // `action` and `holdAction` of a launch or macro widget share one action-kind rule.
+    let (kind_word, want_launch, action, hold_action) = match &widget.kind {
+        WidgetKind::Launch {
+            action,
+            hold_action,
+            ..
+        } => ("launch", true, Some(action), hold_action.as_ref()),
+        WidgetKind::Macro {
+            action,
+            hold_action,
+        } => ("macro", false, Some(action), hold_action.as_ref()),
+        _ => ("", false, None, None),
+    };
+    let (action_type, wrong_word) = if want_launch {
+        ("launch", "a launch action")
+    } else {
+        ("key_macro", "a key_macro action")
+    };
+    for (field, a) in [("action", action), ("holdAction", hold_action)] {
+        let Some(a) = a else { continue };
+        let ok = if want_launch {
+            matches!(a, Action::Launch { .. })
+        } else {
+            matches!(a, Action::KeyMacro { .. })
+        };
+        if !ok {
             errors.push(ValidationError::new(
                 base,
                 "widget-action",
                 format!(
-                    "widget \"{}\" is a launch widget but its action is not a launch action",
+                    "widget \"{}\" is a {kind_word} widget but its {field} is not {wrong_word}",
                     widget.id
                 ),
-                "set action.type to \"launch\"",
+                format!("set {field}.type to \"{action_type}\""),
             ));
         }
-        WidgetKind::Macro { action } if !matches!(action, Action::KeyMacro { .. }) => {
-            errors.push(ValidationError::new(
-                base,
-                "widget-action",
-                format!(
-                    "widget \"{}\" is a macro widget but its action is not a key_macro action",
-                    widget.id
-                ),
-                "set action.type to \"key_macro\"",
-            ));
-        }
-        _ => {}
     }
 
     let actions: Vec<&Action> = match &widget.kind {
-        WidgetKind::Launch { action, .. } | WidgetKind::Macro { action } => vec![action],
+        WidgetKind::Launch {
+            action,
+            hold_action,
+            ..
+        }
+        | WidgetKind::Macro {
+            action,
+            hold_action,
+        } => std::iter::once(action)
+            .chain(hold_action.as_ref())
+            .collect(),
         WidgetKind::Toggle {
             on_action,
             off_action,

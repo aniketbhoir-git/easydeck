@@ -34,11 +34,25 @@ action: Action,
  * `fixed` keeps deck order. `recent` sorts by local play history at render time.
  * Defaults to `fixed`.
  */
-order?: Order, } | { "type": "macro", 
+order?: Order, 
+/**
+ * Optional second action that runs on a long press (held at least 600 ms without
+ * moving). It must be a `launch` action, like `action`. It is a risk item like
+ * `action`: it runs only after the user approves it. A long press never also runs
+ * `action`.
+ */
+holdAction?: Action, } | { "type": "macro", 
 /**
  * The key macro to run on tap.
  */
-action: Action, } | { "type": "toggle", 
+action: Action, 
+/**
+ * Optional second action that runs on a long press (held at least 600 ms without
+ * moving). It must be a `key_macro` action, like `action`. It is a risk item like
+ * `action`: it runs only after the user approves it. A long press never also runs
+ * `action`.
+ */
+holdAction?: Action, } | { "type": "toggle", 
 /**
  * Action for the on state.
  */
