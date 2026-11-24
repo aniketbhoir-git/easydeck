@@ -15,6 +15,9 @@ export const fixtureDeck: Deck = {
   version: 1,
   name: 'Starter deck',
   settings: { homePage: 'home' },
+  sources: {
+    stats: { kind: 'system_stats', metrics: ['cpu.load', 'gpu.load', 'ram.used'] },
+  },
   pages: [
     {
       id: 'home',
@@ -22,16 +25,48 @@ export const fixtureDeck: Deck = {
       grid: { columns: 4, rows: 2 },
       widgets: [
         { id: 'clock', type: 'text', label: 'Clock', icon: '🕒', position: { x: 0, y: 0 } },
-        { id: 'cpu', type: 'gauge', label: 'CPU', icon: '📈', position: { x: 1, y: 0 } },
-        { id: 'game-one', type: 'launch', label: 'Game', icon: '🎮', position: { x: 0, y: 1 } },
-        { id: 'notes', type: 'launch', label: 'Notes', icon: '📝', position: { x: 1, y: 1 } },
+        {
+          id: 'cpu',
+          type: 'gauge',
+          source: 'stats',
+          metric: 'cpu.load',
+          unit: '%',
+          label: 'CPU',
+          icon: '📈',
+          position: { x: 1, y: 0 },
+        },
+        {
+          id: 'game-one',
+          type: 'launch',
+          label: 'Game',
+          icon: '🎮',
+          position: { x: 0, y: 1 },
+          action: { type: 'launch', kind: 'steam', appId: 440 },
+        },
+        {
+          id: 'notes',
+          type: 'launch',
+          label: 'Notes',
+          icon: '📝',
+          position: { x: 1, y: 1 },
+          action: { type: 'launch', kind: 'exe', path: 'C:/Windows/notepad.exe' },
+        },
       ],
     },
     {
       id: 'in-game',
       title: 'In game',
       grid: { columns: 4, rows: 2 },
-      widgets: [{ id: 'heal', type: 'macro', label: 'Heal', icon: '❤', position: { x: 0, y: 0 } }],
+      widgets: [
+        {
+          id: 'heal',
+          type: 'macro',
+          label: 'Heal',
+          icon: '❤',
+          position: { x: 0, y: 0 },
+          action: { type: 'key_macro', keys: ['1'], cycleMs: 3000, toggle: true },
+        },
+      ],
     },
   ],
 }
