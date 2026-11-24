@@ -98,6 +98,11 @@ const INVALID: &[(&str, &str, &str)] = &[
         "/settings/homePage",
         "not a page id",
     ),
+    (
+        "invalid_null_optional.deck.json",
+        "/pages/0/widgets/0/label",
+        "null is not of type",
+    ),
     ("invalid_not_json.deck.json", "", "not valid JSON"),
     ("does_not_exist.deck.json", "", "could not read"),
 ];

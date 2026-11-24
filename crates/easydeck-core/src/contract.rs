@@ -15,14 +15,50 @@ pub fn schema_json() -> String {
         "$id".into(),
         "https://easydeck.dev/schema/deck.schema.json".into(),
     );
-    let mut text = serde_json::to_string_pretty(&schema).expect("schema serializes");
+    // schemars 1.2.3 has no setting that stops `Option<T>` from adding `null`. A deck file
+    // omits an optional field; it never writes `null`. Strip `null` from the generated schema.
+    let mut value = serde_json::to_value(&schema).expect("schema serializes");
+    strip_null(&mut value);
+    let mut text = serde_json::to_string_pretty(&value).expect("schema serializes");
     text.push('\n');
     text
 }
 
+/// Remove the `null` alternative that schemars adds for `Option<T>`: `"type": [T, "null"]`
+/// becomes `"type": T`, and `anyOf: [X, {"type": "null"}]` becomes `X`.
+fn strip_null(value: &mut serde_json::Value) {
+    use serde_json::Value;
+    match value {
+        Value::Array(items) => items.iter_mut().for_each(strip_null),
+        Value::Object(map) => {
+            map.values_mut().for_each(strip_null);
+            if let Some(Value::Array(types)) = map.get_mut("type") {
+                types.retain(|t| t != "null");
+                if types.len() == 1 {
+                    let only = types.remove(0);
+                    map.insert("type".into(), only);
+                }
+            }
+            if let Some(Value::Array(any_of)) = map.get_mut("anyOf") {
+                any_of.retain(|s| s.get("type") != Some(&Value::String("null".into())));
+                if any_of.len() == 1 {
+                    let only = any_of.remove(0);
+                    map.remove("anyOf");
+                    if let Value::Object(inner) = only {
+                        map.extend(inner);
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 /// The TypeScript files for the deck types, keyed by file name, with LF line ends.
 pub fn typescript_files() -> std::io::Result<BTreeMap<String, String>> {
-    let dir = std::env::temp_dir().join(format!("easydeck-ts-{}", std::process::id()));
+    static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("easydeck-ts-{}-{n}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir)?;
     let result = Deck::export_all(&ts_rs::Config::new().with_out_dir(&dir))

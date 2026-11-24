@@ -1,434 +1,314 @@
 {
-  "$id": "https://easydeck.dev/schema/deck.schema.json",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "EasyDeck deck",
-  "description": "An EasyDeck deck: pages of widgets. A widget runs an action or shows a value from a source.\nAn LLM may write or change this file only; it never changes app code.",
-  "type": "object",
-  "properties": {
-    "$schema": {
-      "description": "Optional pointer to this schema, for editors.",
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "name": {
-      "description": "Deck name, shown to the user. 1 to 80 characters.",
-      "type": "string",
-      "maxLength": 80,
-      "minLength": 1
-    },
-    "pages": {
-      "description": "The pages of the deck, at least one. The first page is the home page unless\n`settings.homePage` names another.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/Page"
-      },
-      "minItems": 1
-    },
-    "settings": {
-      "description": "Deck-wide options.",
-      "anyOf": [
-        {
-          "$ref": "#/$defs/Settings"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
-    "sources": {
-      "description": "Named data feeds. Each key is a source id that gauge and status widgets and page\ntriggers refer to. A key matches `^[a-z0-9][a-z0-9_-]{0,63}$`.",
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/$defs/Source"
-      },
-      "default": {},
-      "propertyNames": {
-        "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
-      }
-    },
-    "version": {
-      "description": "Deck format version. Always 1.",
-      "type": "integer",
-      "format": "uint32",
-      "const": 1,
-      "minimum": 0
-    }
-  },
-  "additionalProperties": false,
-  "required": [
-    "version",
-    "name",
-    "pages"
-  ],
   "$defs": {
     "Action": {
       "description": "An action, tagged by `type`. An action runs only after the user approves it in the app.",
       "oneOf": [
         {
+          "additionalProperties": false,
           "description": "Starts a program or opens a link. The field that the `kind` needs is required:\n`appId` for `steam`, `path` for `exe`, `target` for `uri` and `url`.",
-          "type": "object",
           "properties": {
             "appId": {
               "description": "Steam app id. Required for kind `steam`.",
-              "type": [
-                "integer",
-                "null"
-              ],
               "format": "uint64",
-              "minimum": 1
+              "minimum": 1,
+              "type": "integer"
             },
             "args": {
               "description": "Arguments for the program.",
-              "type": [
-                "array",
-                "null"
-              ],
-              "items": {
-                "type": "string"
-              }
-            },
-            "fallback": {
-              "description": "Path or URI to try when `path` is missing. Kind `exe` only.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "kind": {
-              "description": "What to start.",
-              "$ref": "#/$defs/LaunchKind"
-            },
-            "path": {
-              "description": "Program path. Required for kind `exe`.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "target": {
-              "description": "URI or URL. Required for kinds `uri` and `url`.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "type": {
-              "type": "string",
-              "const": "launch"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "type",
-            "kind"
-          ]
-        },
-        {
-          "description": "Presses keys in order, once or in a loop.",
-          "type": "object",
-          "properties": {
-            "cycleMs": {
-              "description": "Repeat period in ms. 0 or absent runs the sequence once.",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint64",
-              "minimum": 0
-            },
-            "holdMs": {
-              "description": "How long each key stays down in ms. Defaults to 30.",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint64",
-              "minimum": 0
-            },
-            "keyGapMs": {
-              "description": "Pause between keys in ms. Defaults to 50.",
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint64",
-              "minimum": 0
-            },
-            "keys": {
-              "description": "Key names pressed in order, for example `[\"1\", \"2\", \"ctrl+q\"]`. At least one.",
-              "type": "array",
               "items": {
                 "type": "string"
               },
-              "minItems": 1
+              "type": "array"
+            },
+            "fallback": {
+              "description": "Path or URI to try when `path` is missing. Kind `exe` only.",
+              "type": "string"
+            },
+            "kind": {
+              "$ref": "#/$defs/LaunchKind",
+              "description": "What to start."
+            },
+            "path": {
+              "description": "Program path. Required for kind `exe`.",
+              "type": "string"
+            },
+            "target": {
+              "description": "URI or URL. Required for kinds `uri` and `url`.",
+              "type": "string"
+            },
+            "type": {
+              "const": "launch",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Presses keys in order, once or in a loop.",
+          "properties": {
+            "cycleMs": {
+              "description": "Repeat period in ms. 0 or absent runs the sequence once.",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "holdMs": {
+              "description": "How long each key stays down in ms. Defaults to 30.",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "keyGapMs": {
+              "description": "Pause between keys in ms. Defaults to 50.",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "keys": {
+              "description": "Key names pressed in order, for example `[\"1\", \"2\", \"ctrl+q\"]`. At least one.",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
             },
             "toggle": {
               "description": "When true, a tap starts the loop and the next tap stops it. Defaults to false.",
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "type": {
-              "type": "string",
-              "const": "key_macro"
+              "const": "key_macro",
+              "type": "string"
             }
           },
-          "additionalProperties": false,
           "required": [
             "type",
             "keys"
-          ]
+          ],
+          "type": "object"
         },
         {
+          "additionalProperties": false,
           "description": "Runs a command from the allow-list in the app settings. Never a raw command line.",
-          "type": "object",
           "properties": {
             "args": {
               "description": "Arguments for the command.",
-              "type": [
-                "array",
-                "null"
-              ],
               "items": {
                 "type": "string"
-              }
+              },
+              "type": "array"
             },
             "command": {
               "description": "Allow-list id, for example `lock-screen`.",
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
             },
             "type": {
-              "type": "string",
-              "const": "shell"
+              "const": "shell",
+              "type": "string"
             }
           },
-          "additionalProperties": false,
           "required": [
             "type",
             "command"
-          ]
+          ],
+          "type": "object"
         },
         {
+          "additionalProperties": false,
           "description": "Switches to another page of this deck.",
-          "type": "object",
           "properties": {
             "page": {
               "description": "Id of the page to show.",
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
             },
             "type": {
-              "type": "string",
-              "const": "page"
+              "const": "page",
+              "type": "string"
             }
           },
-          "additionalProperties": false,
           "required": [
             "type",
             "page"
-          ]
+          ],
+          "type": "object"
         }
       ]
     },
     "Grid": {
+      "additionalProperties": false,
       "description": "Grid size in cells.",
-      "type": "object",
       "properties": {
         "columns": {
           "description": "Number of columns, 1 to 24.",
-          "type": "integer",
           "format": "uint32",
           "maximum": 24,
-          "minimum": 1
+          "minimum": 1,
+          "type": "integer"
         },
         "rows": {
           "description": "Number of rows, 1 to 24.",
-          "type": "integer",
           "format": "uint32",
           "maximum": 24,
-          "minimum": 1
+          "minimum": 1,
+          "type": "integer"
         }
       },
-      "additionalProperties": false,
       "required": [
         "columns",
         "rows"
-      ]
+      ],
+      "type": "object"
     },
     "LaunchKind": {
       "description": "What a launch action starts. Each kind needs one field: `steam` needs `appId`, `exe` needs\n`path`, `uri` and `url` need `target`.",
-      "type": "string",
       "enum": [
         "steam",
         "exe",
         "uri",
         "url"
-      ]
+      ],
+      "type": "string"
     },
     "MediaControl": {
       "description": "A media control button.",
-      "type": "string",
       "enum": [
         "play_pause",
         "next",
         "previous"
-      ]
+      ],
+      "type": "string"
     },
     "Order": {
       "description": "Order of tiles.",
-      "type": "string",
       "enum": [
         "fixed",
         "recent"
-      ]
+      ],
+      "type": "string"
     },
     "Page": {
+      "additionalProperties": false,
       "description": "One screen of widgets on a grid.",
-      "type": "object",
       "properties": {
         "grid": {
-          "description": "Size of the widget grid.",
-          "$ref": "#/$defs/Grid"
+          "$ref": "#/$defs/Grid",
+          "description": "Size of the widget grid."
         },
         "id": {
           "description": "Page id, unique in the deck. Matches `^[a-z0-9][a-z0-9_-]{0,63}$`. A `page` action\nand `settings.homePage` refer to it.",
-          "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "type": "string"
         },
         "title": {
           "description": "Title shown to the user. 1 to 60 characters.",
-          "type": "string",
           "maxLength": 60,
-          "minLength": 1
+          "minLength": 1,
+          "type": "string"
         },
         "trigger": {
-          "description": "Context rule. When set, the page opens when the rule becomes true and the deck\nreturns to the home page when it becomes false.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Trigger"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/$defs/Trigger",
+          "description": "Context rule. When set, the page opens when the rule becomes true and the deck\nreturns to the home page when it becomes false."
         },
         "widgets": {
           "description": "Widgets on this page. Two widgets must not overlap and each must fit in the grid.\nWidget ids must be unique on the page.",
-          "type": "array",
           "items": {
             "$ref": "#/$defs/Widget"
-          }
+          },
+          "type": "array"
         }
       },
-      "additionalProperties": false,
       "required": [
         "id",
         "title",
         "grid",
         "widgets"
-      ]
+      ],
+      "type": "object"
     },
     "Position": {
+      "additionalProperties": false,
       "description": "Grid position, zero-based. The widget covers `w` columns and `h` rows from cell (`x`, `y`).",
-      "type": "object",
       "properties": {
         "h": {
-          "description": "Height in rows. Defaults to 1.",
-          "type": "integer",
-          "format": "uint32",
           "default": 1,
-          "minimum": 1
+          "description": "Height in rows. Defaults to 1.",
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
         },
         "w": {
-          "description": "Width in columns. Defaults to 1.",
-          "type": "integer",
-          "format": "uint32",
           "default": 1,
-          "minimum": 1
+          "description": "Width in columns. Defaults to 1.",
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
         },
         "x": {
           "description": "Column of the left edge, from 0.",
-          "type": "integer",
           "format": "uint32",
-          "minimum": 0
+          "minimum": 0,
+          "type": "integer"
         },
         "y": {
           "description": "Row of the top edge, from 0.",
-          "type": "integer",
           "format": "uint32",
-          "minimum": 0
+          "minimum": 0,
+          "type": "integer"
         }
       },
-      "additionalProperties": false,
       "required": [
         "x",
         "y"
-      ]
+      ],
+      "type": "object"
     },
     "Settings": {
+      "additionalProperties": false,
       "description": "Deck-wide options. Every field is optional.",
-      "type": "object",
       "properties": {
         "accent": {
           "description": "Accent color as `#rrggbb`.",
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^#[0-9a-fA-F]{6}$"
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "type": "string"
         },
         "homePage": {
           "description": "Id of the page shown at start and after a context page closes. It must be the id of\na page in this deck.",
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "type": "string"
         },
         "theme": {
-          "description": "Color theme. Defaults to `dark`.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Theme"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/$defs/Theme",
+          "description": "Color theme. Defaults to `dark`."
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "Source": {
       "description": "A named data feed, tagged by `kind`.",
       "oneOf": [
         {
+          "additionalProperties": false,
           "description": "CPU, GPU and memory numbers from this PC.",
-          "type": "object",
           "properties": {
             "intervalMs": {
               "description": "Poll interval in ms, at least 250. Defaults to 1000.",
-              "type": [
-                "integer",
-                "null"
-              ],
               "format": "uint64",
-              "minimum": 250
+              "minimum": 250,
+              "type": "integer"
             },
             "kind": {
-              "type": "string",
-              "const": "system_stats"
+              "const": "system_stats",
+              "type": "string"
             },
             "metrics": {
               "description": "Metrics to read, each at most once. Allowed: `cpu.load`, `cpu.temp`, `gpu.load`,\n`gpu.temp`, `ram.used`, `ram.total`.",
-              "type": [
-                "array",
-                "null"
-              ],
               "items": {
                 "enum": [
                   "cpu.load",
@@ -439,258 +319,205 @@
                   "ram.total"
                 ]
               },
+              "type": "array",
               "uniqueItems": true
             }
           },
-          "additionalProperties": false,
           "required": [
             "kind"
-          ]
+          ],
+          "type": "object"
         },
         {
+          "additionalProperties": false,
           "description": "Polls a web URL. The call runs only after the user approves the URL.",
-          "type": "object",
           "properties": {
             "intervalSeconds": {
               "description": "Seconds between polls, at least 5. Defaults to 60.",
-              "type": [
-                "integer",
-                "null"
-              ],
               "format": "uint64",
-              "minimum": 5
+              "minimum": 5,
+              "type": "integer"
             },
             "kind": {
-              "type": "string",
-              "const": "http_poll"
+              "const": "http_poll",
+              "type": "string"
             },
             "timeoutSeconds": {
               "description": "Seconds before a poll times out, 1 to 60. Defaults to 10.",
-              "type": [
-                "integer",
-                "null"
-              ],
               "format": "uint64",
               "maximum": 60,
-              "minimum": 1
+              "minimum": 1,
+              "type": "integer"
             },
             "url": {
               "description": "An http or https URL.",
-              "type": "string",
               "format": "uri",
-              "pattern": "^https?://"
+              "pattern": "^https?://",
+              "type": "string"
             }
           },
-          "additionalProperties": false,
           "required": [
             "kind",
             "url"
-          ]
+          ],
+          "type": "object"
         },
         {
+          "additionalProperties": false,
           "description": "Watches for running processes. A page `trigger` refers to this kind.",
-          "type": "object",
           "properties": {
             "intervalMs": {
               "description": "Check interval in ms, at least 500. Defaults to 2000.",
-              "type": [
-                "integer",
-                "null"
-              ],
               "format": "uint64",
-              "minimum": 500
+              "minimum": 500,
+              "type": "integer"
             },
             "kind": {
-              "type": "string",
-              "const": "game_watch"
+              "const": "game_watch",
+              "type": "string"
             },
             "processes": {
               "description": "Process names to watch, at least one, each at most once.",
-              "type": "array",
               "items": {
                 "type": "string"
               },
               "minItems": 1,
+              "type": "array",
               "uniqueItems": true
             }
           },
-          "additionalProperties": false,
           "required": [
             "kind",
             "processes"
-          ]
+          ],
+          "type": "object"
         }
       ]
     },
     "TextKind": {
       "description": "What a text widget shows.",
-      "type": "string",
       "enum": [
         "label",
         "clock",
         "date"
-      ]
+      ],
+      "type": "string"
     },
     "Theme": {
       "description": "Color theme.",
-      "type": "string",
       "enum": [
         "dark",
         "light"
-      ]
+      ],
+      "type": "string"
     },
     "Trigger": {
+      "additionalProperties": false,
       "description": "Context rule that opens a page while a game runs.",
-      "type": "object",
       "properties": {
         "source": {
           "description": "Id of a `game_watch` source in `sources`. Any other kind of source is an error.",
-          "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "type": "string"
         },
         "when": {
-          "description": "The condition that opens the page.",
-          "$ref": "#/$defs/TriggerWhen"
+          "$ref": "#/$defs/TriggerWhen",
+          "description": "The condition that opens the page."
         }
       },
-      "additionalProperties": false,
       "required": [
         "source",
         "when"
-      ]
+      ],
+      "type": "object"
     },
     "TriggerWhen": {
+      "additionalProperties": false,
       "description": "Condition of a trigger.",
-      "type": "object",
       "properties": {
         "process": {
           "description": "Process name, for example `game.exe`.",
-          "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "type": "string"
         }
       },
-      "additionalProperties": false,
       "required": [
         "process"
-      ]
+      ],
+      "type": "object"
     },
     "Widget": {
       "description": "A tile on a page. The `type` field picks the kind; each kind adds its own fields. A field\nthat the kind does not define is an error.",
-      "type": "object",
-      "properties": {
-        "icon": {
-          "description": "Icon: a path inside the pack (`icons/...`) or an https URL.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "id": {
-          "description": "Widget id, unique on its page. Matches `^[a-z0-9][a-z0-9_-]{0,63}$`.",
-          "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
-        },
-        "label": {
-          "description": "Text under the tile. At most 60 characters.",
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 60
-        },
-        "position": {
-          "description": "Where the widget sits on the grid. Required in this version.",
-          "$ref": "#/$defs/Position"
-        }
-      },
       "oneOf": [
         {
           "description": "Starts a program, game or link. `action` must be a `launch` action.",
-          "type": "object",
           "properties": {
             "action": {
-              "description": "The launch action to run on tap.",
-              "$ref": "#/$defs/Action"
+              "$ref": "#/$defs/Action",
+              "description": "The launch action to run on tap."
             },
             "order": {
-              "description": "`fixed` keeps deck order. `recent` sorts by local play history at render time.\nDefaults to `fixed`.",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Order"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/$defs/Order",
+              "description": "`fixed` keeps deck order. `recent` sorts by local play history at render time.\nDefaults to `fixed`."
             },
             "type": {
-              "type": "string",
-              "const": "launch"
+              "const": "launch",
+              "type": "string"
             }
           },
           "required": [
             "type",
             "action"
-          ]
+          ],
+          "type": "object"
         },
         {
           "description": "Sends keys. `action` must be a `key_macro` action.",
-          "type": "object",
           "properties": {
             "action": {
-              "description": "The key macro to run on tap.",
-              "$ref": "#/$defs/Action"
+              "$ref": "#/$defs/Action",
+              "description": "The key macro to run on tap."
             },
             "type": {
-              "type": "string",
-              "const": "macro"
+              "const": "macro",
+              "type": "string"
             }
           },
           "required": [
             "type",
             "action"
-          ]
+          ],
+          "type": "object"
         },
         {
           "description": "A tile with two states. A tap runs `onAction` or `offAction`.",
-          "type": "object",
           "properties": {
             "offAction": {
-              "description": "Action for the off state.",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Action"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/$defs/Action",
+              "description": "Action for the off state."
             },
             "onAction": {
-              "description": "Action for the on state.",
-              "$ref": "#/$defs/Action"
+              "$ref": "#/$defs/Action",
+              "description": "Action for the on state."
             },
             "type": {
-              "type": "string",
-              "const": "toggle"
+              "const": "toggle",
+              "type": "string"
             }
           },
           "required": [
             "type",
             "onAction"
-          ]
+          ],
+          "type": "object"
         },
         {
           "description": "Shows a number from a source as a gauge.",
-          "type": "object",
           "properties": {
             "max": {
               "description": "Value at the full end. Defaults to 100.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "double"
+              "format": "double",
+              "type": "number"
             },
             "metric": {
               "description": "Field of the source value, for example `cpu.load` or `gpu.temp`.",
@@ -698,167 +525,211 @@
             },
             "min": {
               "description": "Value at the empty end. Defaults to 0.",
-              "type": [
-                "number",
-                "null"
-              ],
-              "format": "double"
+              "format": "double",
+              "type": "number"
             },
             "source": {
               "description": "Id of a source in `sources`.",
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
             },
             "type": {
-              "type": "string",
-              "const": "gauge"
+              "const": "gauge",
+              "type": "string"
             },
             "unit": {
               "description": "Unit shown after the value. At most 8 characters.",
-              "type": [
-                "string",
-                "null"
-              ],
-              "maxLength": 8
+              "maxLength": 8,
+              "type": "string"
             }
           },
           "required": [
             "type",
             "source",
             "metric"
-          ]
+          ],
+          "type": "object"
         },
         {
           "description": "Shows OK or a problem from a source value.",
-          "type": "object",
           "properties": {
             "okWhen": {
               "description": "Value that counts as OK. Anything else shows as a problem.",
-              "type": [
-                "string",
-                "null"
-              ]
+              "type": "string"
             },
             "path": {
               "description": "JSON path into the source value.",
-              "type": [
-                "string",
-                "null"
-              ]
+              "type": "string"
             },
             "source": {
               "description": "Id of a source in `sources`.",
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
             },
             "type": {
-              "type": "string",
-              "const": "status"
+              "const": "status",
+              "type": "string"
             }
           },
           "required": [
             "type",
             "source"
-          ]
+          ],
+          "type": "object"
         },
         {
           "description": "A label, a clock or a date.",
-          "type": "object",
           "properties": {
             "format": {
               "description": "Clock or date format pattern. At most 40 characters.",
-              "type": [
-                "string",
-                "null"
-              ],
-              "maxLength": 40
+              "maxLength": 40,
+              "type": "string"
             },
             "kind": {
-              "description": "`label` shows `text`. `clock` and `date` show the time. Defaults to `label`.",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/TextKind"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/$defs/TextKind",
+              "description": "`label` shows `text`. `clock` and `date` show the time. Defaults to `label`."
             },
             "text": {
               "description": "Text for the `label` kind. At most 200 characters.",
-              "type": [
-                "string",
-                "null"
-              ],
-              "maxLength": 200
+              "maxLength": 200,
+              "type": "string"
             },
             "type": {
-              "type": "string",
-              "const": "text"
+              "const": "text",
+              "type": "string"
             }
           },
           "required": [
             "type"
-          ]
+          ],
+          "type": "object"
         },
         {
           "description": "Controls the system media session (any player that reports to Windows). It has no\nprovider and no volume control.",
-          "type": "object",
           "properties": {
             "controls": {
               "description": "Controls to show. Each appears at most once.",
-              "type": [
-                "array",
-                "null"
-              ],
               "items": {
                 "$ref": "#/$defs/MediaControl"
               },
+              "type": "array",
               "uniqueItems": true
             },
             "type": {
-              "type": "string",
-              "const": "media"
+              "const": "media",
+              "type": "string"
             }
           },
           "required": [
             "type"
-          ]
+          ],
+          "type": "object"
         },
         {
           "description": "Shows a web page. The page gets no access to the app.",
-          "type": "object",
           "properties": {
             "refreshSeconds": {
               "description": "Seconds between reloads. 0 or absent means no reload.",
-              "type": [
-                "integer",
-                "null"
-              ],
               "format": "uint32",
-              "minimum": 0
+              "minimum": 0,
+              "type": "integer"
             },
             "type": {
-              "type": "string",
-              "const": "embed"
+              "const": "embed",
+              "type": "string"
             },
             "url": {
               "description": "An http or https URL.",
-              "type": "string",
               "format": "uri",
-              "pattern": "^https?://"
+              "pattern": "^https?://",
+              "type": "string"
             }
           },
           "required": [
             "type",
             "url"
-          ]
+          ],
+          "type": "object"
         }
       ],
+      "properties": {
+        "icon": {
+          "description": "Icon: a path inside the pack (`icons/...`) or an https URL.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Widget id, unique on its page. Matches `^[a-z0-9][a-z0-9_-]{0,63}$`.",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        "label": {
+          "description": "Text under the tile. At most 60 characters.",
+          "maxLength": 60,
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Position",
+          "description": "Where the widget sits on the grid. Required in this version."
+        }
+      },
       "required": [
         "id",
         "position"
-      ]
+      ],
+      "type": "object"
     }
-  }
+  },
+  "$id": "https://easydeck.dev/schema/deck.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "An EasyDeck deck: pages of widgets. A widget runs an action or shows a value from a source.\nAn LLM may write or change this file only; it never changes app code.",
+  "properties": {
+    "$schema": {
+      "description": "Optional pointer to this schema, for editors.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Deck name, shown to the user. 1 to 80 characters.",
+      "maxLength": 80,
+      "minLength": 1,
+      "type": "string"
+    },
+    "pages": {
+      "description": "The pages of the deck, at least one. The first page is the home page unless\n`settings.homePage` names another.",
+      "items": {
+        "$ref": "#/$defs/Page"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "settings": {
+      "$ref": "#/$defs/Settings",
+      "description": "Deck-wide options."
+    },
+    "sources": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Source"
+      },
+      "default": {},
+      "description": "Named data feeds. Each key is a source id that gauge and status widgets and page\ntriggers refer to. A key matches `^[a-z0-9][a-z0-9_-]{0,63}$`.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+      },
+      "type": "object"
+    },
+    "version": {
+      "const": 1,
+      "description": "Deck format version. Always 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "name",
+    "pages"
+  ],
+  "title": "EasyDeck deck",
+  "type": "object"
 }

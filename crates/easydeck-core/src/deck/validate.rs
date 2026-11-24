@@ -267,18 +267,19 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
             ..
         } = action
         {
-            let (field, missing) = match kind {
-                LaunchKind::Steam => ("appId", app_id.is_none()),
-                LaunchKind::Exe => ("path", path.is_none()),
-                LaunchKind::Uri | LaunchKind::Url => ("target", target.is_none()),
+            let (kind_name, field, missing) = match kind {
+                LaunchKind::Steam => ("steam", "appId", app_id.is_none()),
+                LaunchKind::Exe => ("exe", "path", path.is_none()),
+                LaunchKind::Uri => ("uri", "target", target.is_none()),
+                LaunchKind::Url => ("url", "target", target.is_none()),
             };
             if missing {
                 errors.push(ValidationError::new(
                     base,
                     "launch-required-field",
                     format!(
-                        "widget \"{}\": a launch action of kind {kind:?} needs the field \"{field}\"",
-                        widget.id
+                        "widget \"{}\": a launch action of kind {} needs the field \"{field}\"",
+                        widget.id, kind_name
                     ),
                     format!("add \"{field}\" to the launch action"),
                 ));
