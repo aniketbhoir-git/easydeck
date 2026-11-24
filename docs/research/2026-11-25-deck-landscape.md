@@ -18,7 +18,7 @@ We take ideas and behaviour only. We copy no code, names, logos or art.
 | Macro Deck 3 | Apache-2.0 | .NET/C# host (plugins are C#); web client; Companion apps | Phone, tablet or browser as the surface; Windows, macOS, Linux host | Signed C# plugins from a reviewed Store; declarative "Macro Deck UI" for widgets | Widgets, profiles, folders, variables, events, flows with if/else/loops, button states, 33 built-in integrations |
 | StreamController | GPL-3.0 | Python, GTK4 | Elgato Stream Deck hardware (plus experimental clones); Linux only | Plugins and an asset store | Auto page switch by active window, auto-lock, sticky actions, wallpapers, screen saver, CLI and D-Bus API |
 | OpenDeck | GPL-3.0 | Rust, Tauri, TypeScript | Stream Deck hardware; Linux, Windows, macOS; phone via a third-party app | Runs original Stream Deck SDK plugins (Wine for Windows-only ones) | Multi Actions, Toggle Actions, profile switch by app, brightness |
-| Bitfocus Companion | Open source (LICENSE.md not read) | Node.js web admin | Stream Deck and other surfaces, built-in emulator, web buttons, remote "Satellite" surfaces | 700+ connection modules | Feedback (look follows device state), stacked actions, action logic and delays, duration groups, triggers by OSC, TCP, UDP, HTTP, WebSocket |
+| Bitfocus Companion | MIT, with added terms in part 2 of LICENSE.md | Node.js web admin | Stream Deck and other surfaces, built-in emulator, web buttons, remote "Satellite" surfaces | 700+ connection modules | Feedback (look follows device state), stacked actions, action logic and delays, duration groups, triggers by OSC, TCP, UDP, HTTP, WebSocket |
 | Touch Portal | Closed; free and Pro tiers | Native mobile apps plus PC app | Phone or tablet over network | Plug-ins (Pro tier) and API | Multi-action buttons, logic, sliders, grids up to 110 buttons, unlimited pages, built-in OBS, Twitch, Hue, HTTP, sounds |
 | Deckboard | Closed core (a public repo exists; features only) | Electron (repo topics) | Phone as remote | Limited | Macro buttons, folders, OBS remote, macro recorder (low detail) |
 | LioranBoard | Closed | Windows desktop | Phone or Stream Deck as surface | Extensions | OBS and Twitch automation (search listing only; low detail) |
@@ -111,4 +111,4 @@ Weather, Home Assistant and OBS wait until these ship, because each needs an app
 - https://github.com/streamdeck-linux-gui/streamdeck-linux-gui (README; maintenance mode)
 - https://lioranwaters.github.io/lioranboard2docs/download (search listing only; the main site did not resolve)
 
-Gaps: we did not read the Companion license text. Deckboard and LioranBoard feature lists are thin. Check both before you cite them.
+Gaps: Deckboard and LioranBoard feature lists are thin. Check them before you cite them.
