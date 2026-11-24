@@ -1,0 +1,12 @@
+[package]
+name = "easydeck-platform-windows"
+version = "0.1.0"
+description = "EasyDeck Windows platform code: stats, and later display, keys and media"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+easydeck-core = { path = "../easydeck-core" }
+
+[target.'cfg(windows)'.dependencies]
+sysinfo = { workspace = true }
