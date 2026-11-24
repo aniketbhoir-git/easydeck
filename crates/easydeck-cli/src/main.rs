@@ -13,8 +13,8 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("gen") => match &args[1..] {
-            [] => finish(gen(false)),
-            [flag] if flag == "--check" => finish(gen(true)),
+            [] => finish(generate(false)),
+            [flag] if flag == "--check" => finish(generate(true)),
             _ => usage(),
         },
         Some("validate") if args.len() > 1 => validate(&args[1..]),
@@ -45,7 +45,7 @@ fn repo_root() -> PathBuf {
 
 /// Write the generated files, or with `check` compare them with the committed ones.
 /// Returns `Ok(true)` when nothing differs (or after a write).
-fn gen(check: bool) -> Result<bool, String> {
+fn generate(check: bool) -> Result<bool, String> {
     let root = repo_root();
     let schema_path = root.join("schema/deck.schema.json");
     let ts_dir = root.join("ui/src/lib/generated");
