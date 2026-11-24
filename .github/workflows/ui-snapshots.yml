@@ -6,6 +6,9 @@ name: UI snapshots
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -27,3 +30,4 @@ jobs:
         with:
           name: ui-baselines
           path: ui/e2e/__screenshots__/
+          if-no-files-found: error

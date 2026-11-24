@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('[data-widget-id]').first()).toBeVisible()
 })
 
-test('the starter deck renders its home page', async ({ page }) => {
+test('the fixture deck (ui/src/lib/mock-ipc.ts) renders its home page', async ({ page }) => {
   await expect(page.locator('[data-widget-id]')).toHaveCount(4)
   for (const label of ['Clock', 'CPU', 'Game', 'Notes']) {
     await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible()
@@ -34,6 +34,7 @@ test('text cannot be selected', async ({ page }) => {
 })
 
 test('a pressed tile gets the press class', async ({ page }) => {
+  // dispatchEvent, not a real touch: Playwright cannot hold a tap, so this checks the press wiring.
   const tile = page.locator('[data-widget-id="cpu"]')
   await expect(tile).not.toHaveClass(/pressed/)
   await tile.dispatchEvent('pointerdown')
