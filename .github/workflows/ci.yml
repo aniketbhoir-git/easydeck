@@ -6,29 +6,6 @@ on:
   pull_request:
 
 jobs:
-  schema:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-      - name: Check deck schema and example decks
-        run: |
-          npm install --no-save ajv@8 ajv-formats@3
-          node -e "
-            const Ajv = require('ajv/dist/2020'); const fs = require('fs'); const path = require('path');
-            const addFormats = require('ajv-formats');
-            const ajv = new Ajv({ allErrors: true, strict: false }); addFormats(ajv);
-            const validate = ajv.compile(JSON.parse(fs.readFileSync('schema/deck.schema.json', 'utf8')));
-            const dir = 'examples';
-            let bad = 0;
-            if (fs.existsSync(dir)) for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.deck.json'))) {
-              if (!validate(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')))) { bad++; console.error(f, validate.errors); }
-            }
-            process.exit(bad ? 1 : 0);
-          "
-
   windows:
     runs-on: windows-latest
     steps:
@@ -103,4 +80,8 @@ jobs:
         with:
           workspaces: .
       - name: Test core
-        run: cargo test --locked -p easydeck-core
+        run: cargo test --locked -p easydeck-core -p easydeck-cli
+      - name: Generated files are up to date
+        run: cargo run -p easydeck-cli --locked -- gen --check
+      - name: Validate example decks
+        run: cargo run -p easydeck-cli --locked -- validate examples/*.deck.json

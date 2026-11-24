@@ -9,3 +9,8 @@ license = "MIT"
 serde = { workspace = true }
 serde_json = { workspace = true }
 jsonschema = { workspace = true }
+schemars = { workspace = true }
+ts-rs = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }

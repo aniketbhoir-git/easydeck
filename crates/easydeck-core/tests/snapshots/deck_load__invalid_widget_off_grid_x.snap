@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/1/position",
+    "rule": "off-grid",
+    "message": "widget \"b\" spans to column 5, row 1 but the grid is 4x2",
+    "fix": "move or shrink the widget, or make the grid larger"
+  }
+]
