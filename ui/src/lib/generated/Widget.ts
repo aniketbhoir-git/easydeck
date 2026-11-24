@@ -23,9 +23,10 @@ label?: string,
  */
 icon?: string, 
 /**
- * Where the widget sits on the grid. Required in this version.
+ * Where the widget sits on the grid. Omit it and the app places the widget in the first
+ * free cell in reading order (row by row, left to right); it then covers one cell.
  */
-position: Position, } & ({ "type": "launch", 
+position?: Position, } & ({ "type": "launch", 
 /**
  * The launch action to run on tap.
  */

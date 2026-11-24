@@ -5,7 +5,8 @@ use crate::error::AppError;
 use easydeck_core::deck::Deck;
 
 pub fn load_deck_impl(state: &AppState) -> Deck {
-    state.deck().clone()
+    // Positions are filled in here, once, so the UI never places widgets itself.
+    easydeck_core::layout::resolve(state.deck())
 }
 
 /// Stub: checks the widget exists and returns Ok. Never launches or sends anything.
@@ -38,6 +39,11 @@ mod tests {
     fn load_deck_returns_bundled_deck() {
         let state = AppState::bundled().unwrap();
         assert_eq!(load_deck_impl(&state).name, "Starter deck");
+        assert!(load_deck_impl(&state)
+            .pages
+            .iter()
+            .flat_map(|p| &p.widgets)
+            .all(|w| w.position.is_some()));
     }
 
     #[test]
