@@ -171,8 +171,11 @@ pub struct Widget {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub icon: Option<String>,
-    /// Where the widget sits on the grid. Required in this version.
-    pub position: Position,
+    /// Where the widget sits on the grid. Omit it and the app places the widget in the first
+    /// free cell in reading order (row by row, left to right); it then covers one cell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub position: Option<Position>,
     /// The widget kind and its fields.
     #[serde(flatten)]
     pub kind: WidgetKind,

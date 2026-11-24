@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/1/position",
+    "rule": "overlap",
+    "message": "widgets \"a\" and \"b\" overlap",
+    "fix": "move one of the two widgets to free cells, make the grid larger, or remove its position so the app places it"
+  }
+]

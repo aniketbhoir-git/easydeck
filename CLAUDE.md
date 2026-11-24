@@ -27,7 +27,7 @@ rule blocks an issue. Send the question, the options and the minimum facts.
   **A-5** runs after milestone M1. **A-1** (focus spike) needs the maintainer at the touch
   monitor. **A-6** waits for the A-1 answer.
 - GitHub issues: A-1 … A-9 are #30–#38, R6-4 is #39. #23–#25 (R7) carry the `deferred` label.
-- `position` stays required until A-9.
+- `position` is optional since A-9; `layout::resolve` fills it for the UI only.
 
 ## Environment notes (Windows 11)
 - Cargo is at `%USERPROFILE%\.cargo\bin` and may be missing from a tool's PATH. Bash:

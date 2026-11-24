@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Widget } from '../lib/api'
+  import type { PlacedWidget } from '../lib/api'
   import { press } from '../lib/press'
   import TextWidget from './TextWidget.svelte'
 
@@ -7,7 +7,7 @@
   let {
     widget,
     onpress,
-  }: { widget: Widget; onpress: (id: string, hold?: boolean) => void } = $props()
+  }: { widget: PlacedWidget; onpress: (id: string, hold?: boolean) => void } = $props()
 
   const pos = $derived(widget.position)
   let pressed = $state(false)

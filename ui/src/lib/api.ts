@@ -9,6 +9,9 @@ export type { Position } from './generated/Position'
 export type { Settings } from './generated/Settings'
 export type { Widget } from './generated/Widget'
 import type { Deck } from './generated/Deck'
+import type { Page } from './generated/Page'
+import type { Position } from './generated/Position'
+import type { Widget } from './generated/Widget'
 
 export interface AppError {
   code: string
@@ -24,4 +27,12 @@ export function loadDeck(): Promise<Deck> {
 // `hold` true runs the widget's holdAction (long press); omitted runs its action (tap).
 export function runAction(widgetId: string, hold = false): Promise<void> {
   return invoke<void>('run_action', hold ? { widgetId, hold: true } : { widgetId })
+}
+
+/** A widget whose position is filled in. `load_deck` places every widget in Rust
+ *  (easydeck-core `layout::resolve`), so the UI never decides placement itself. */
+export type PlacedWidget = Widget & { position: Position }
+
+export function placedWidgets(page: Page): PlacedWidget[] {
+  return page.widgets.filter((w): w is PlacedWidget => w.position !== undefined)
 }

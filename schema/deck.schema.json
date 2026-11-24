@@ -684,12 +684,11 @@
         },
         "position": {
           "$ref": "#/$defs/Position",
-          "description": "Where the widget sits on the grid. Required in this version."
+          "description": "Where the widget sits on the grid. Omit it and the app places the widget in the first\nfree cell in reading order (row by row, left to right); it then covers one cell."
         }
       },
       "required": [
-        "id",
-        "position"
+        "id"
       ],
       "type": "object"
     }

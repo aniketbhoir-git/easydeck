@@ -70,6 +70,16 @@ const INVALID: &[(&str, &str, &str)] = &[
     ),
     ("invalid_empty_pages.deck.json", "/pages", ""),
     (
+        "invalid_overlap.deck.json",
+        "/pages/0/widgets/1/position",
+        "overlap",
+    ),
+    (
+        "invalid_no_space.deck.json",
+        "/pages/0/widgets/2",
+        "no free cell",
+    ),
+    (
         "invalid_dup_widget_id.deck.json",
         "/pages/0/widgets/1/id",
         "duplicate",
@@ -194,4 +204,31 @@ fn media_has_no_provider_and_no_volume() {
     let mut deck = valid_value();
     deck["pages"][1]["widgets"][3]["controls"] = serde_json::json!(["volume"]);
     assert!(!DeckStore::validate(&deck).is_empty());
+}
+
+#[test]
+fn deck_without_positions_loads_and_is_placed_in_reading_order() {
+    use easydeck_core::layout::place;
+    let deck = load("valid_no_positions.deck.json").expect("deck without positions is valid");
+    let placed = place(&deck.pages[0]).unwrap();
+    let at: Vec<_> = placed.iter().map(|p| (p.id.as_str(), p.x, p.y)).collect();
+    assert_eq!(
+        at,
+        [
+            ("a", 0, 0),
+            ("b", 1, 0),
+            ("c", 2, 0),
+            ("d", 0, 1),
+            ("e", 1, 1)
+        ]
+    );
+}
+
+#[test]
+fn overlap_error_names_both_widgets() {
+    let errors = load("invalid_overlap.deck.json").unwrap_err();
+    assert!(errors.iter().any(|e| e.rule == "overlap"
+        && e.path == "/pages/0/widgets/1/position"
+        && e.message.contains("\"a\"")
+        && e.message.contains("\"b\"")));
 }
