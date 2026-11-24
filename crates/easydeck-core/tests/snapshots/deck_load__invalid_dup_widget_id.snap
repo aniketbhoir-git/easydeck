@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/1/id",
+    "rule": "duplicate-id",
+    "message": "duplicate widget id \"a\" on page \"home\"",
+    "fix": "give each widget on a page its own id"
+  }
+]

@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "",
+    "rule": "schema/required",
+    "message": "\"name\" is a required property",
+    "fix": "add the missing field"
+  }
+]

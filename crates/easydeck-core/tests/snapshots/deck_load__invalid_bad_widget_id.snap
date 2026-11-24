@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/0/id",
+    "rule": "schema/pattern",
+    "message": "\"Bad Id\" does not match \"^[a-z0-9][a-z0-9_-]{0,63}$\"",
+    "fix": "change the value to match the pattern in the schema"
+  }
+]

@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/0",
+    "rule": "schema/oneOf",
+    "message": "{\"id\":\"a\",\"kind\":\"clock\",\"position\":{\"x\":0,\"y\":0},\"type\":\"bogus\"} is not valid under any of the schemas listed in the 'oneOf' keyword",
+    "fix": "make the object match one variant of the schema; check its `type` or `kind` field and the fields that variant needs"
+  }
+]

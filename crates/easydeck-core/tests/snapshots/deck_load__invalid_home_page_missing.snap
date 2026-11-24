@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/settings/homePage",
+    "rule": "home-page",
+    "message": "homePage \"nowhere\" is not a page id",
+    "fix": "set homePage to the id of a page in this deck, or remove it"
+  }
+]

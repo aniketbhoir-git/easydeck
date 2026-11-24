@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/1/trigger/source",
+    "rule": "trigger-source",
+    "message": "trigger source \"stats\" must name a game_watch source",
+    "fix": "point the trigger at a source whose kind is game_watch"
+  }
+]

@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "",
+    "rule": "json",
+    "message": "not valid JSON: key must be a string at line 1 column 3",
+    "fix": "fix the JSON syntax"
+  }
+]

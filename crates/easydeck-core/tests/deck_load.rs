@@ -37,7 +37,21 @@ const INVALID: &[(&str, &str, &str)] = &[
     ("invalid_missing_name.deck.json", "", "name"),
     ("invalid_unknown_top_field.deck.json", "", "extra"),
     ("invalid_widget_type.deck.json", "/pages/0/widgets/0", ""),
-    ("invalid_bad_widget_id.deck.json", "/pages/0/widgets/0", ""),
+    (
+        "invalid_bad_widget_id.deck.json",
+        "/pages/0/widgets/0/id",
+        "does not match",
+    ),
+    (
+        "invalid_widget_unknown_field.deck.json",
+        "/pages/0/widgets/0",
+        "colour",
+    ),
+    (
+        "invalid_widget_wrong_action.deck.json",
+        "/pages/0/widgets/2",
+        "not a launch action",
+    ),
     (
         "invalid_launch_missing_appid.deck.json",
         "/pages/0/widgets/2",
@@ -108,4 +122,60 @@ fn validate_accepts_value_and_matches_load() {
     let errors = DeckStore::validate(&value);
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0].path, "/pages/0/widgets/1/id");
+}
+
+/// Snapshots hold the messages an LLM reads: path, rule, message and fix.
+#[test]
+fn invalid_fixture_messages_are_stable() {
+    for (name, ..) in INVALID {
+        if *name == "does_not_exist.deck.json" {
+            continue;
+        }
+        let errors = load(name).expect_err(name);
+        insta::assert_json_snapshot!(name.trim_end_matches(".deck.json"), errors);
+    }
+}
+
+fn valid_value() -> serde_json::Value {
+    let text = std::fs::read_to_string(fixture("valid_full.deck.json")).unwrap();
+    serde_json::from_str(&text).unwrap()
+}
+
+#[test]
+fn every_error_has_a_rule_and_a_fix() {
+    for (name, ..) in INVALID {
+        for e in load(name).expect_err(name) {
+            assert!(!e.rule.is_empty() && !e.fix.is_empty(), "{name}: {e:?}");
+        }
+    }
+}
+
+#[test]
+fn launch_kinds_need_their_field() {
+    for (kind, field) in [("exe", "path"), ("uri", "target"), ("url", "target")] {
+        let mut deck = valid_value();
+        deck["pages"][0]["widgets"][2]["action"] =
+            serde_json::json!({"type": "launch", "kind": kind});
+        let errors = DeckStore::validate(&deck);
+        assert!(
+            errors.iter().any(|e| e.path == "/pages/0/widgets/2"
+                && e.rule == "launch-required-field"
+                && e.message.contains(field)),
+            "{kind}: {errors:#?}"
+        );
+    }
+}
+
+#[test]
+fn media_has_no_provider_and_no_volume() {
+    let mut deck = valid_value();
+    deck["pages"][1]["widgets"][3]["provider"] = serde_json::json!("spotify");
+    let errors = DeckStore::validate(&deck);
+    assert!(errors
+        .iter()
+        .any(|e| e.path == "/pages/1/widgets/3" && e.rule == "unknown-field"));
+
+    let mut deck = valid_value();
+    deck["pages"][1]["widgets"][3]["controls"] = serde_json::json!(["volume"]);
+    assert!(!DeckStore::validate(&deck).is_empty());
 }

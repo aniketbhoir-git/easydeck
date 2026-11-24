@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/2",
+    "rule": "widget-action",
+    "message": "widget \"c\" is a launch widget but its action is not a launch action",
+    "fix": "set action.type to \"launch\""
+  }
+]

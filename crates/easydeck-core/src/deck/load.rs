@@ -15,7 +15,9 @@ impl DeckStore {
         let text = std::fs::read_to_string(path).map_err(|e| {
             vec![ValidationError::new(
                 "",
+                "read",
                 format!("could not read {}: {e}", path.display()),
+                "check that the file exists and can be read",
             )]
         })?;
         Self::load_str(&text)
@@ -23,8 +25,14 @@ impl DeckStore {
 
     /// Parse, validate and type deck JSON that is already in memory (for example a bundled deck).
     pub fn load_str(text: &str) -> Result<Deck, Vec<ValidationError>> {
-        let value: Value = serde_json::from_str(text)
-            .map_err(|e| vec![ValidationError::new("", format!("not valid JSON: {e}"))])?;
+        let value: Value = serde_json::from_str(text).map_err(|e| {
+            vec![ValidationError::new(
+                "",
+                "json",
+                format!("not valid JSON: {e}"),
+                "fix the JSON syntax",
+            )]
+        })?;
         check(&value)
     }
 

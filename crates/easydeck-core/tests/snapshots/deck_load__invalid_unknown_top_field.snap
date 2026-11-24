@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "",
+    "rule": "schema/additionalProperties",
+    "message": "Additional properties are not allowed ('extra' was unexpected)",
+    "fix": "remove the field that the schema does not define"
+  }
+]
