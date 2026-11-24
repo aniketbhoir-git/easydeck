@@ -42,6 +42,7 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | New widget types `counter`, `timer`, `volume`; `holdAction` on tiles; toggle looks | The owner asked for basic gadgets; the research found these gaps | Remove the types before the first release (format breaks are allowed until then) |
 | 2026-11-25 | Volume moves from v2 "Should" to now (G-4) | The owner asked for a volume gadget | Close #47 |
 | 2026-11-25 | Clock split from R2-2 into G-1 (#44) | The clock needs no stats source | Fold back into R2-2 |
+| 2026-11-25 | **Rule breach:** one force push (`--force-with-lease`) of `impl/A-3--generated-contract` after a rebase onto the squashed A-2. No PR used the branch yet and no work was lost. | Mistake by the orchestrator | From now on: merge `main` into a branch; never rebase a pushed branch |
 | 2026-11-25 | Gadget build order follows the research list (clock, counter, timer, gauge, volume, media, toggle look, long press) | The research ranks these as basic and low risk | Reorder the issues |
 
 ## Test queue for the owner
