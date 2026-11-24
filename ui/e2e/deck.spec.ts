@@ -58,3 +58,23 @@ test('screenshot: second page', async ({ page }) => {
   await expect(page.locator('[data-widget-id="heal"]')).toBeVisible()
   await expect(page).toHaveScreenshot('in-game.png', { animations: 'disabled' })
 })
+
+test('a deck without positions renders in reading order', async ({ page }) => {
+  // The mock returns what load_deck returns after easydeck-core places the widgets.
+  await page.goto('/?deck=no-positions')
+  await expect(page.locator('[data-widget-id]')).toHaveCount(5)
+  const boxes = await page.locator('[data-widget-id]').evaluateAll((els) =>
+    els.map((el) => {
+      const r = el.getBoundingClientRect()
+      return { id: el.getAttribute('data-widget-id'), x: r.x, y: r.y }
+    }),
+  )
+  expect(boxes.map((b) => b.id)).toEqual(['a', 'b', 'c', 'd', 'e'])
+  // Row by row, left to right: x grows within a row, y grows between rows.
+  expect(boxes[0].x).toBeLessThan(boxes[1].x)
+  expect(boxes[1].x).toBeLessThan(boxes[2].x)
+  expect(boxes[3].x).toBeCloseTo(boxes[0].x, 0)
+  expect(boxes[4].x).toBeCloseTo(boxes[1].x, 0)
+  expect(boxes[3].y).toBeGreaterThan(boxes[0].y)
+  expect(boxes[2].y).toBeCloseTo(boxes[0].y, 0)
+})

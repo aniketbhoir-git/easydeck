@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Widget } from '../lib/api'
+  import type { PlacedWidget } from '../lib/api'
 
-  let { widget, onpress }: { widget: Widget; onpress: (id: string) => void } = $props()
+  let { widget, onpress }: { widget: PlacedWidget; onpress: (id: string) => void } = $props()
 
   const pos = $derived(widget.position)
   let pressed = $state(false)
