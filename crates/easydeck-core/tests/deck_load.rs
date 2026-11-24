@@ -1,11 +1,11 @@
-//! Table-driven deck load and validate tests. Fixtures live in `tests/fixtures/`.
+//! Table-driven deck load and validate tests. Fixtures live in `tests/fixtures/` at the repository root.
 
-use easydeck_lib::deck::{Deck, DeckStore, ValidationError};
+use easydeck_core::deck::{Deck, DeckStore, ValidationError};
 use std::path::PathBuf;
 
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures")
+        .join("../../tests/fixtures")
         .join(name)
 }
 
@@ -15,7 +15,7 @@ fn load(name: &str) -> Result<Deck, Vec<ValidationError>> {
 
 #[test]
 fn starter_example_loads() {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../examples/starter.deck.json");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/starter.deck.json");
     let deck = DeckStore::load(path).expect("starter deck should load");
     assert_eq!(deck.pages.len(), 2);
 }

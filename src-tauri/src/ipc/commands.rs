@@ -1,8 +1,8 @@
 //! Tauri commands. `run_action` is a stub until the action runners land (R2).
 
 use super::state::AppState;
-use crate::deck::Deck;
 use crate::error::AppError;
+use easydeck_core::deck::Deck;
 
 pub fn load_deck_impl(state: &AppState) -> Deck {
     state.deck().clone()

@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 
-// Mirrors the parts of the Rust deck model (src-tauri/src/deck/model.rs) that the UI draws.
+// Mirrors the parts of the Rust deck model (crates/easydeck-core/src/deck/model.rs) that the UI draws.
 export interface Grid {
   columns: number
   rows: number
