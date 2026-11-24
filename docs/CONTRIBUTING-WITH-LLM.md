@@ -18,8 +18,9 @@ matter how few tokens it cost.
    Tell it: "Implement issue <ID> from docs/ISSUE-BACKLOG.md. Read docs/SPEC.md §0 first."
 3. The agent removes the ignore marks and makes the tests pass. It does not change what a
    test asserts. If a test looks wrong, stop and say so in the issue.
-4. Run `cargo xtask check`. It runs what CI runs. (Until issue A-4 lands: `cargo test`,
-   `cargo clippy --all-targets -- -D warnings`, `cargo fmt --all -- --check` in `src-tauri/`,
+4. Run `cargo xtask check`. It runs what CI runs. (Until issue A-4 lands: `cargo test --workspace`,
+   `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check` from
+   the repository root,
    and `npx vitest run` in `ui/`.)
 5. Read the diff yourself. Open one pull request for the one issue, with the template.
 
