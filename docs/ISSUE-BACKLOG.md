@@ -335,18 +335,17 @@ Milestone M2 — breadth, open to the community:
 - **Tests:** parse tests for `nvidia-smi` CSV output (with a missing-GPU case); interval test
   with a fake clock.
 
-### Issue R2-2 — Gauge, status and text widgets (SPEC §4)
+### Issue R2-2 — Gauge and status widgets (SPEC §4)
 - **Labels:** `verify:auto`, `size:M` · **Status:** blocked
 - **Depends on:** A-7, R2-1
-- **Goal:** render the `gauge`, `status` and `text` (label, clock, date) widgets.
-- **Files:** `ui/src/components/{Gauge,Status,TextWidget}.svelte`, a `sourceStore` that
+- **Goal:** render the `gauge` and `status` widgets. (The `text` widget moved to G-1, #44.)
+- **Files:** `ui/src/components/{Gauge,Status}.svelte`, a `sourceStore` that
   subscribes to `source:<id>` events.
 - **Requirements:** gauge draws an arc or bar between `min` and `max` with `unit`; status
-  shows OK or problem from `okWhen`; clock updates each second and honors `format`; a
-  neutral "no data" state when the source is silent.
-- **Acceptance:** the starter deck shows a live CPU gauge and a ticking clock.
+  shows OK or problem from `okWhen`; a neutral "no data" state when the source is silent.
+- **Acceptance:** the starter deck shows a live CPU gauge.
 - **Tests:** `vitest` for value-to-angle mapping and the "no data" state; Playwright
-  screenshots with a fixed clock and fixed source values.
+  screenshots with a fixed time and fixed source values.
 
 ### Issue R2-3 — Media widget on the system media session (SPEC §5)
 - **Labels:** `verify:human`, `review:owner`, `size:M` · **Status:** blocked
