@@ -50,6 +50,7 @@ export const fixtureDeck: Deck = {
           icon: '📝',
           position: { x: 1, y: 1 },
           action: { type: 'launch', kind: 'exe', path: 'C:/Windows/notepad.exe' },
+          holdAction: { type: 'launch', kind: 'url', target: 'https://example.com/notes' },
         },
       ],
     },

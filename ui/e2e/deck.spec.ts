@@ -35,6 +35,30 @@ test('a tap calls run_action exactly once', async ({ page }) => {
   expect((await calls(page)).filter((c) => c.cmd === 'run_action')).toHaveLength(1)
 })
 
+const runCalls = async (page: Page) => (await calls(page)).filter((c) => c.cmd === 'run_action')
+
+test('a long press calls run_action once for the holdAction and no tap', async ({ page }) => {
+  const box = (await page.locator('[data-widget-id="notes"]').boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.waitForTimeout(700)
+  await page.mouse.up()
+  await page.waitForTimeout(300)
+  expect(await runCalls(page)).toEqual([
+    { cmd: 'run_action', args: { widgetId: 'notes', hold: true } },
+  ])
+})
+
+test('a long press on a tile without holdAction does nothing', async ({ page }) => {
+  const box = (await page.locator('[data-widget-id="game-one"]').boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.waitForTimeout(700)
+  await page.mouse.up()
+  await page.waitForTimeout(300)
+  expect(await runCalls(page)).toHaveLength(0)
+})
+
 test('text cannot be selected', async ({ page }) => {
   const tile = page.locator('[data-widget-id="game-one"]')
   expect(await tile.evaluate((el) => getComputedStyle(el).userSelect)).toBe('none')
