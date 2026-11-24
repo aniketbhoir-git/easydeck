@@ -9,23 +9,24 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 ## State
 
 - Updated: 2026-11-25
-- `main`: A-2 merged (#41, squash).
-- Running: A-3 (#32) and A-7 (#36) builds, each in its own worktree.
+- `main`: A-2 (#41), A-7 (#51), A-3 (#50) merged.
+- Running: A-4 (#33) xtask and G-1 (#44) clock, each in its own worktree.
 
 ## Done (this run)
 
 - Label `gtavi:self-merged` created.
 - A-2 (#41) merged after an Opus review (no blocking issue; 3 doc nits fixed).
 - Research: `docs/research/2026-11-25-deck-landscape.md` (PR #43).
+- A-7 (#51) merged: Playwright harness, `ui-linux` CI job, Linux screenshot baselines.
+- A-3 (#50) merged: schema and TS types generated from Rust; `easydeck-cli`. The review
+  caught `null` on optional fields; fixed with a `strip_null` post-process.
 - Gadget issues filed: G-1 #44, G-2 #45, G-3 #46, G-4 #47, G-5 #48, G-6 #49 (label `gadget`).
 
 ## Next
 
-1. A-3 (#32) generated contract.
-2. A-7 (#36) UI test harness.
-3. A-4 (#33) xtask.
-4. A-9 (#38) layout rules.
-5. Gadgets, after A-3 and A-7: G-1 clock (#44) → G-6 long press (#49) → G-2 counter (#45)
+1. A-4 (#33) xtask.
+2. A-9 (#38) layout rules.
+3. Gadgets: G-1 clock (#44) → G-6 long press (#49) → G-2 counter (#45)
    → G-3 timer (#46) → R2-1 stats (#6) → R2-2 gauge (#7) → G-4 volume (#47) → R2-3 media
    (#8) → G-5 toggle look (#48).
 
@@ -43,6 +44,8 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Volume moves from v2 "Should" to now (G-4) | The owner asked for a volume gadget | Close #47 |
 | 2026-11-25 | Clock split from R2-2 into G-1 (#44) | The clock needs no stats source | Fold back into R2-2 |
 | 2026-11-25 | **Rule breach:** one force push (`--force-with-lease`) of `impl/A-3--generated-contract` after a rebase onto the squashed A-2. No PR used the branch yet and no work was lost. | Mistake by the orchestrator | From now on: merge `main` into a branch; never rebase a pushed branch |
+| 2026-11-25 | `invalid_bad_widget_id` now fails at `/pages/0/widgets/0/id` (A-3) | The generated schema has no per-widget `oneOf`; the path is more precise | Accept as is |
+| 2026-11-25 | Screenshot compare is strict (`maxDiffPixels: 0`) | CI pins the Playwright container | Loosen to `maxDiffPixels: 20` if it flakes |
 | 2026-11-25 | Gadget build order follows the research list (clock, counter, timer, gauge, volume, media, toggle look, long press) | The research ranks these as basic and low risk | Reorder the issues |
 
 ## Test queue for the owner
@@ -52,3 +55,5 @@ A-5 (#34, runs after milestone M1).
    in that report. Then mark PR #42 ready.
 2. **A-2 smoke check.** From `ui/`, run `npm run tauri dev`. Check that the window shows the
    starter deck.
+3. **A-7 screenshots.** Open `docs/screenshots/A-7-starter-1920x480.png` and
+   `docs/screenshots/A-7-starter-1024x600.png`. Say if the tile look is acceptable.
