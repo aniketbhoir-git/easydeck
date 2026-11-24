@@ -12,9 +12,9 @@
       deck.pages[0],
   )
 
-  async function press(widgetId: string) {
+  async function press(widgetId: string, hold = false) {
     try {
-      await runAction(widgetId)
+      await runAction(widgetId, hold)
     } catch (err) {
       console.error('run_action failed', err)
     }

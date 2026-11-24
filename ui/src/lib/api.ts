@@ -21,6 +21,7 @@ export function loadDeck(): Promise<Deck> {
   return invoke<Deck>('load_deck')
 }
 
-export function runAction(widgetId: string): Promise<void> {
-  return invoke<void>('run_action', { widgetId })
+// `hold` true runs the widget's holdAction (long press); omitted runs its action (tap).
+export function runAction(widgetId: string, hold = false): Promise<void> {
+  return invoke<void>('run_action', hold ? { widgetId, hold: true } : { widgetId })
 }

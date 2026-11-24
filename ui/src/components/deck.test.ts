@@ -33,6 +33,20 @@ const deck: DeckModel = {
   ],
 }
 
+const holdDeck: DeckModel = {
+  ...deck,
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 1, rows: 1 },
+      widgets: [
+        { id: 'h', type: 'launch', action: launch, holdAction: launch, label: 'Hold', position: { x: 0, y: 0 } },
+      ],
+    },
+  ],
+}
+
 afterEach(() => {
   cleanup()
   invoke.mockReset()
@@ -65,6 +79,22 @@ describe('Deck', () => {
     render(Deck, { deck })
     await fireEvent.click(screen.getByText('Beta'))
     expect(invoke).toHaveBeenCalledWith('run_action', { widgetId: 'b' })
+  })
+
+  it('calls run_action with hold on a long press of a tile with a holdAction', async () => {
+    vi.useFakeTimers()
+    try {
+      invoke.mockResolvedValue(undefined)
+      render(Deck, { deck: holdDeck })
+      const t = screen.getByText('Hold').closest('button') as HTMLElement
+      await fireEvent.pointerDown(t, { pointerId: 1 })
+      vi.advanceTimersByTime(700)
+      await fireEvent.pointerUp(t, { pointerId: 1 })
+      expect(invoke).toHaveBeenCalledTimes(1)
+      expect(invoke).toHaveBeenCalledWith('run_action', { widgetId: 'h', hold: true })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('switches pages', async () => {

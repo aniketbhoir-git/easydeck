@@ -1,11 +1,17 @@
 <script lang="ts">
   import type { Widget } from '../lib/api'
+  import { press } from '../lib/press'
   import TextWidget from './TextWidget.svelte'
 
-  let { widget, onpress }: { widget: Widget; onpress: (id: string) => void } = $props()
+  // `hold` is true for a long press: the app then runs the widget's holdAction.
+  let {
+    widget,
+    onpress,
+  }: { widget: Widget; onpress: (id: string, hold?: boolean) => void } = $props()
 
   const pos = $derived(widget.position)
   let pressed = $state(false)
+  const hasHold = $derived('holdAction' in widget && !!widget.holdAction)
 </script>
 
 <button
@@ -15,12 +21,12 @@
   data-widget-id={widget.id}
   style:grid-column="{pos.x + 1} / span {pos.w ?? 1}"
   style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
-  onpointerdown={() => (pressed = true)}
-  onpointerup={() => (pressed = false)}
-  onpointerleave={() => (pressed = false)}
-  onpointercancel={() => (pressed = false)}
+  use:press={{
+    onTap: () => onpress(widget.id),
+    onHold: hasHold ? () => onpress(widget.id, true) : undefined,
+    onPressing: (v) => (pressed = v),
+  }}
   oncontextmenu={(e) => e.preventDefault()}
-  onclick={() => onpress(widget.id)}
 >
   {#if widget.type === 'text'}
     <TextWidget {widget} />
