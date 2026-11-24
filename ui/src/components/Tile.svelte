@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PlacedWidget } from '../lib/api'
+  import TextWidget from './TextWidget.svelte'
 
   let { widget, onpress }: { widget: PlacedWidget; onpress: (id: string) => void } = $props()
 
@@ -21,7 +22,9 @@
   oncontextmenu={(e) => e.preventDefault()}
   onclick={() => onpress(widget.id)}
 >
-  {#if widget.icon}
+  {#if widget.type === 'text'}
+    <TextWidget {widget} />
+  {:else if widget.icon}
     <span class="icon" aria-hidden="true">{widget.icon}</span>
   {/if}
   {#if widget.label}

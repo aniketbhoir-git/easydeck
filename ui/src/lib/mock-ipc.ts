@@ -24,7 +24,7 @@ export const fixtureDeck: Deck = {
       title: 'Home',
       grid: { columns: 4, rows: 2 },
       widgets: [
-        { id: 'clock', type: 'text', label: 'Clock', icon: '🕒', position: { x: 0, y: 0 } },
+        { id: 'clock', type: 'text', kind: 'clock', showDate: true, position: { x: 0, y: 0 } },
         {
           id: 'cpu',
           type: 'gauge',

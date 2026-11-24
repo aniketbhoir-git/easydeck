@@ -4,8 +4,9 @@ import { expect, test } from '@playwright/test'
 test.skip(!process.env.DOC_SHOTS, 'only with DOC_SHOTS=1')
 
 test('save starter deck screenshot', async ({ page }, info) => {
+  await page.clock.setFixedTime(new Date('2026-11-25T14:07:00Z'))
   await page.goto('/')
   await expect(page.locator('[data-widget-id]').first()).toBeVisible()
   const size = info.project.name.split('-').pop()
-  await page.screenshot({ path: `../docs/screenshots/A-7-starter-${size}.png` })
+  await page.screenshot({ path: `../docs/screenshots/G-1-clock-${size}.png` })
 })

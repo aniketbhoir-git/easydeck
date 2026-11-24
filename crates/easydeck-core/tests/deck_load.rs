@@ -27,6 +27,12 @@ fn full_valid_fixture_loads() {
     assert_eq!(deck.pages[1].widgets.len(), 5);
 }
 
+#[test]
+fn clock_fixture_loads() {
+    let deck = load("valid_clock.deck.json").expect("clock fixture should load");
+    assert_eq!(deck.pages[0].widgets.len(), 4);
+}
+
 /// (fixture, expected error path, expected message substring)
 const INVALID: &[(&str, &str, &str)] = &[
     (

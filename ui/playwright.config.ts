@@ -15,7 +15,13 @@ export default defineConfig({
   // Baselines are made in the CI container only (fonts differ per OS).
   snapshotPathTemplate: '{testDir}/__screenshots__/{projectName}/{arg}{ext}',
   expect: { toHaveScreenshot: { threshold: 0.01, maxDiffPixels: 0 } },
-  use: { baseURL: `http://127.0.0.1:${port}`, trace: 'retain-on-failure' },
+  use: {
+    baseURL: `http://127.0.0.1:${port}`,
+    trace: 'retain-on-failure',
+    // Fixed locale and zone so the frozen clock renders the same everywhere.
+    locale: 'en-US',
+    timezoneId: 'UTC',
+  },
   projects: [
     { name: 'wide-1920x480', use: { ...touch, viewport: { width: 1920, height: 480 } } },
     { name: 'small-1024x600', use: { ...touch, viewport: { width: 1024, height: 600 } } },
