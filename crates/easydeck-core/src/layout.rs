@@ -68,6 +68,7 @@ impl fmt::Display for LayoutError {
 }
 
 /// Place every widget of a page. Returns the placement in widget order, or every problem found.
+/// Expects a page that passed schema validation (grid of 1 to 24 columns and rows).
 pub fn place(page: &Page) -> Result<Vec<Placed>, Vec<LayoutError>> {
     let (cols, rows) = (page.grid.columns as usize, page.grid.rows as usize);
     // owner[row * cols + col] is the widget index that covers the cell.
@@ -152,6 +153,7 @@ pub fn place(page: &Page) -> Result<Vec<Placed>, Vec<LayoutError>> {
 
 /// A copy of the deck with every widget position filled in. This is what the UI draws.
 /// A page that cannot be placed keeps its widgets as they are; validation reports it.
+/// Never save the result: it fixes the automatic positions. Save the original deck.
 pub fn resolve(deck: &Deck) -> Deck {
     let mut out = deck.clone();
     for page in &mut out.pages {
