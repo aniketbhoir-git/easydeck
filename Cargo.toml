@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/easydeck-core", "crates/easydeck-cli", "src-tauri"]
+members = ["crates/easydeck-core", "crates/easydeck-cli", "src-tauri", "xtask"]
 resolver = "2"
 
 [workspace.dependencies]
