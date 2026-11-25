@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/0",
+    "rule": "counter-safe-range",
+    "message": "counter \"water\" has max outside the safe whole-number range",
+    "fix": "set max between -9007199254740991 and 9007199254740991"
+  }
+]

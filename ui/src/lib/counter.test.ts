@@ -6,6 +6,11 @@ describe('counter', () => {
     expect(nextValue(0, {})).toBe(1)
     expect(resetValue({})).toBe(0)
   })
+  it('never leaves the safe integer range', () => {
+    const M = Number.MAX_SAFE_INTEGER
+    expect(nextValue(M, { step: 5 })).toBe(M)
+    expect(nextValue(-M, { step: -5 })).toBe(-M)
+  })
   it('adds step, also negative', () => {
     expect(nextValue(5, { step: 3 })).toBe(8)
     expect(nextValue(5, { step: -2 })).toBe(3)

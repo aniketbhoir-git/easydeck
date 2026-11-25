@@ -18,7 +18,9 @@ export function clamp(value: number, min?: number, max?: number): number {
 
 /** The value after one tap: adds `step`, then clamps to min and max. */
 export function nextValue(value: number, c: CounterConfig): number {
-  return clamp(value + counterStep(c), c.min, c.max)
+  const sum = value + counterStep(c)
+  const safe = Math.max(-Number.MAX_SAFE_INTEGER, Math.min(Number.MAX_SAFE_INTEGER, sum))
+  return clamp(safe, c.min, c.max)
 }
 
 /** The value after a long press. */

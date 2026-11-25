@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/0",
+    "rule": "counter-range",
+    "message": "counter \"water\" has min above max",
+    "fix": "set min to a value at or below max"
+  }
+]

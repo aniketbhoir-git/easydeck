@@ -2,12 +2,13 @@
   import type { Widget } from '../lib/api'
   import { evaluateStatus } from '../lib/gauge'
   import { sourceStore } from '../lib/source-store'
-  import { sourceIntervalMs } from '../lib/source-interval'
+  import { useSourceInterval } from '../lib/source-interval'
 
   type StatusData = Extract<Widget, { type: 'status' }>
   let { widget }: { widget: StatusData } = $props()
 
-  const reading = $derived(sourceStore(widget.source, sourceIntervalMs(widget.source)))
+  const intervalMs = useSourceInterval()
+  const reading = $derived(sourceStore(widget.source, intervalMs(widget.source)))
   const state = $derived(evaluateStatus($reading, widget.path, widget.okWhen))
   const text = $derived({ ok: 'OK', problem: 'Problem', nodata: 'No data' }[state])
 </script>
