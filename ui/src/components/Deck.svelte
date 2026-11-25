@@ -1,9 +1,15 @@
 <script lang="ts">
   import type { Deck } from '../lib/api'
   import { runAction } from '../lib/api'
+  import { setContext } from 'svelte'
   import Page from './Page.svelte'
+  import { provideSources } from '../lib/source-interval'
 
   let { deck }: { deck: Deck } = $props()
+  // Initial deck is enough: widgets read poll intervals once, when they mount.
+  provideSources(deck.sources)
+
+  setContext('deckName', deck.name)
 
   let selected = $state<string | null>(null)
   const current = $derived(

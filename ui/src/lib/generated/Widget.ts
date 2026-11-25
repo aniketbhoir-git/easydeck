@@ -4,6 +4,8 @@ import type { MediaControl } from "./MediaControl";
 import type { Order } from "./Order";
 import type { Position } from "./Position";
 import type { TextKind } from "./TextKind";
+import type { TimerMode } from "./TimerMode";
+import type { ToggleLook } from "./ToggleLook";
 
 /**
  * A tile on a page. The `type` field picks the kind; each kind adds its own fields. A field
@@ -55,19 +57,30 @@ action: Action,
  */
 holdAction?: Action, } | { "type": "toggle", 
 /**
- * Action for the on state.
+ * Action that runs when the tile switches on.
  */
 onAction: Action, 
 /**
- * Action for the off state.
+ * Action that runs when the tile switches off. Without it, switching off runs nothing.
  */
-offAction?: Action, } | { "type": "gauge", 
+offAction?: Action, 
+/**
+ * Look while on. Missing fields use the widget's own `label` and `icon`, and the
+ * default tile colour.
+ */
+on?: ToggleLook, 
+/**
+ * Look while off. Missing fields use the widget's own `label` and `icon`, and the
+ * default tile colour.
+ */
+off?: ToggleLook, } | { "type": "gauge", 
 /**
  * Id of a source in `sources`.
  */
 source: string, 
 /**
- * Field of the source value, for example `cpu.load` or `gpu.temp`.
+ * Metric name: a key of the source's flat payload, for example `cpu.load` or
+ * `gpu.temp`. It is not a JSON path. A missing or null value shows "no data".
  */
 metric: string, 
 /**
@@ -87,11 +100,14 @@ unit?: string, } | { "type": "status",
  */
 source: string, 
 /**
- * JSON path into the source value.
+ * Metric name: a key of the source's flat payload, for example `cpu.load`. It is not
+ * a JSON path. A missing or null value shows "no data".
  */
 path?: string, 
 /**
- * Value that counts as OK. Anything else shows as a problem.
+ * Value that counts as OK. Anything else shows as a problem. A numeric `okWhen`
+ * compares as a number, so `1` matches `1.0`. Any other `okWhen` compares as text.
+ * When omitted, any non-zero value is OK.
  */
 okWhen?: string, } | { "type": "text", 
 /**
@@ -115,7 +131,33 @@ seconds?: boolean,
  * Clock only. `true` shows the date in a smaller line under the time. Defaults to
  * `false`. The `date` kind always shows the date.
  */
-showDate?: boolean, } | { "type": "media", 
+showDate?: boolean, } | { "type": "counter", 
+/**
+ * First value, and the value after a reset. Defaults to 0. When `min` or `max` is set,
+ * `start` must lie between them.
+ */
+start?: number, 
+/**
+ * Amount added by each tap. May be negative. Must not be 0. Defaults to 1.
+ */
+step?: number, 
+/**
+ * Lowest value. The count stops here. Optional.
+ */
+min?: number, 
+/**
+ * Highest value. The count stops here. Optional.
+ */
+max?: number, } | { "type": "timer", 
+/**
+ * `countdown` counts down from `durationS`; `stopwatch` counts up.
+ */
+mode: TimerMode, 
+/**
+ * Countdown only: length in seconds, 1 to 86400. Required for a countdown. A
+ * stopwatch must not set it.
+ */
+durationS?: number, } | { "type": "volume", } | { "type": "media", 
 /**
  * Controls to show. Each appears at most once.
  */

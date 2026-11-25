@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "name": "Volume deck",
+  "settings": {
+    "homePage": "home"
+  },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "widgets": [
+        {
+          "id": "vol-wide",
+          "type": "volume",
+          "label": "Volume",
+          "position": { "x": 0, "y": 0, "w": 2, "h": 1 }
+        },
+        {
+          "id": "vol-tall",
+          "type": "volume",
+          "position": { "x": 2, "y": 0, "w": 1, "h": 2 }
+        }
+      ]
+    }
+  ]
+}

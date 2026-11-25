@@ -1,6 +1,6 @@
 //! Validation: version gate, JSON Schema, then semantic checks the schema cannot express.
 
-use super::model::{Action, Deck, LaunchKind, Page, Source, Widget, WidgetKind};
+use super::model::{Action, Deck, LaunchKind, Page, Source, TimerMode, Widget, WidgetKind};
 use crate::layout::{self, LayoutError};
 use serde::Serialize;
 use serde_json::Value;
@@ -262,6 +262,7 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
         WidgetKind::Toggle {
             on_action,
             off_action,
+            ..
         } => std::iter::once(on_action)
             .chain(off_action.as_ref())
             .collect(),
@@ -293,6 +294,91 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
                     format!("add \"{field}\" to the launch action"),
                 ));
             }
+        }
+    }
+
+    if let WidgetKind::Counter {
+        start,
+        step,
+        min,
+        max,
+    } = &widget.kind
+    {
+        if *step == Some(0) {
+            errors.push(ValidationError::new(
+                base,
+                "counter-step",
+                format!(
+                    "counter \"{}\" has step 0, so a tap changes nothing",
+                    widget.id
+                ),
+                "set step to a non-zero whole number, or remove it to use 1",
+            ));
+        }
+        let start = start.unwrap_or(0);
+        let low = min.is_some_and(|m| start < m);
+        let high = max.is_some_and(|m| start > m);
+        let inverted = matches!((min, max), (Some(a), Some(b)) if a > b);
+        if inverted {
+            errors.push(ValidationError::new(
+                base,
+                "counter-range",
+                format!("counter \"{}\" has min above max", widget.id),
+                "set min to a value at or below max",
+            ));
+        } else if low || high {
+            errors.push(ValidationError::new(
+                base,
+                "counter-range",
+                format!(
+                    "counter \"{}\" has start {start} outside its min and max",
+                    widget.id
+                ),
+                "set start so that min <= start <= max, or change min or max",
+            ));
+        }
+    }
+
+    if let WidgetKind::Toggle { on, off, .. } = &widget.kind {
+        for (name, look) in [("on", on), ("off", off)] {
+            let Some(color) = look.as_ref().and_then(|l| l.color.as_deref()) else {
+                continue;
+            };
+            if !is_hex_color(color) {
+                errors.push(ValidationError::new(
+                    base,
+                    "toggle-color",
+                    format!(
+                        "toggle \"{}\" has {name}.color \"{color}\", which is not a hex colour",
+                        widget.id
+                    ),
+                    format!("set {name}.color to #rgb or #rrggbb, for example \"#2ecc71\""),
+                ));
+            }
+        }
+    }
+
+    if let WidgetKind::Timer { mode, duration_s } = &widget.kind {
+        let problem = match (mode, duration_s) {
+            (TimerMode::Countdown, None) => Some((
+                format!("countdown timer \"{}\" has no durationS", widget.id),
+                "set durationS to a number of seconds from 1 to 86400",
+            )),
+            (TimerMode::Countdown, Some(d)) if !(1..=86_400).contains(d) => Some((
+                format!(
+                    "countdown timer \"{}\" has durationS {d}, outside 1 to 86400",
+                    widget.id
+                ),
+                "set durationS to a number of seconds from 1 to 86400",
+            )),
+            (TimerMode::Stopwatch, Some(_)) => Some((
+                format!("stopwatch \"{}\" must not set durationS", widget.id),
+                "remove durationS, or change mode to countdown",
+            )),
+            _ => None,
+        };
+        if let Some((message, fix)) = problem {
+            errors.push(ValidationError::new(base, "timer-duration", message, fix));
         }
     }
 
@@ -347,4 +433,10 @@ fn layout_error(page_index: usize, page: &Page, e: LayoutError) -> ValidationErr
             "make the grid larger, remove a widget, or move the explicit positions so a cell is free",
         ),
     }
+}
+
+/// `#rgb` or `#rrggbb`. Anything else is refused, so a colour can never carry CSS.
+fn is_hex_color(s: &str) -> bool {
+    s.strip_prefix('#')
+        .is_some_and(|h| matches!(h.len(), 3 | 6) && h.bytes().all(|b| b.is_ascii_hexdigit()))
 }

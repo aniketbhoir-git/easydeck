@@ -411,6 +411,34 @@
       ],
       "type": "string"
     },
+    "TimerMode": {
+      "description": "What a timer tile does.",
+      "enum": [
+        "countdown",
+        "stopwatch"
+      ],
+      "type": "string"
+    },
+    "ToggleLook": {
+      "additionalProperties": false,
+      "description": "How a toggle looks in one state. Every field is optional; a missing one falls back to the\nwidget's own `label` and `icon`, and to the default tile colour.",
+      "properties": {
+        "color": {
+          "description": "Tile colour in this state: a hex colour, `#rgb` or `#rrggbb`.",
+          "type": "string"
+        },
+        "icon": {
+          "description": "Icon in this state: a path inside the pack (`icons/...`) or an https URL.",
+          "type": "string"
+        },
+        "label": {
+          "description": "Text under the tile in this state. At most 60 characters.",
+          "maxLength": 60,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "Trigger": {
       "additionalProperties": false,
       "description": "Context rule that opens a page while a game runs.",
@@ -498,15 +526,23 @@
           "type": "object"
         },
         {
-          "description": "A tile with two states. A tap runs `onAction` or `offAction`.",
+          "description": "A tile with two states. A tap while off runs `onAction` and switches the tile on; a tap\nwhile on runs `offAction` (if set) and switches it off. The state is kept on this\ndevice between runs, never in the deck file. It starts off. Each action is a risk item.",
           "properties": {
+            "off": {
+              "$ref": "#/$defs/ToggleLook",
+              "description": "Look while off. Missing fields use the widget's own `label` and `icon`, and the\ndefault tile colour."
+            },
             "offAction": {
               "$ref": "#/$defs/Action",
-              "description": "Action for the off state."
+              "description": "Action that runs when the tile switches off. Without it, switching off runs nothing."
+            },
+            "on": {
+              "$ref": "#/$defs/ToggleLook",
+              "description": "Look while on. Missing fields use the widget's own `label` and `icon`, and the\ndefault tile colour."
             },
             "onAction": {
               "$ref": "#/$defs/Action",
-              "description": "Action for the on state."
+              "description": "Action that runs when the tile switches on."
             },
             "type": {
               "const": "toggle",
@@ -528,7 +564,7 @@
               "type": "number"
             },
             "metric": {
-              "description": "Field of the source value, for example `cpu.load` or `gpu.temp`.",
+              "description": "Metric name: a key of the source's flat payload, for example `cpu.load` or\n`gpu.temp`. It is not a JSON path. A missing or null value shows \"no data\".",
               "type": "string"
             },
             "min": {
@@ -562,11 +598,11 @@
           "description": "Shows OK or a problem from a source value.",
           "properties": {
             "okWhen": {
-              "description": "Value that counts as OK. Anything else shows as a problem.",
+              "description": "Value that counts as OK. Anything else shows as a problem. A numeric `okWhen`\ncompares as a number, so `1` matches `1.0`. Any other `okWhen` compares as text.\nWhen omitted, any non-zero value is OK.",
               "type": "string"
             },
             "path": {
-              "description": "JSON path into the source value.",
+              "description": "Metric name: a key of the source's flat payload, for example `cpu.load`. It is not\na JSON path. A missing or null value shows \"no data\".",
               "type": "string"
             },
             "source": {
@@ -611,6 +647,76 @@
             },
             "type": {
               "const": "text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A counter tile. A tap adds `step` to the value; a long press (held at least 600 ms)\nresets it to `start`. The value is kept on this device between runs, never in the deck\nfile. It runs no action and is not a risk item. The tile shows the widget `label`.",
+          "properties": {
+            "max": {
+              "description": "Highest value. The count stops here. Optional.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "min": {
+              "description": "Lowest value. The count stops here. Optional.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "start": {
+              "description": "First value, and the value after a reset. Defaults to 0. When `min` or `max` is set,\n`start` must lie between them.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "step": {
+              "description": "Amount added by each tap. May be negative. Must not be 0. Defaults to 1.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "counter",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A countdown or stopwatch tile. A tap starts, pauses and resumes it; a long press (held\nat least 600 ms) resets it. At the end of a countdown the tile changes colour and\npulses until the next tap. No sound. The state is kept in memory only: it is lost when\nthe app closes. It runs no action and is not a risk item. The tile shows the widget\n`label`.",
+          "properties": {
+            "durationS": {
+              "description": "Countdown only: length in seconds, 1 to 86400. Required for a countdown. A\nstopwatch must not set it.",
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "mode": {
+              "$ref": "#/$defs/TimerMode",
+              "description": "`countdown` counts down from `durationS`; `stopwatch` counts up."
+            },
+            "type": {
+              "const": "timer",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "mode"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A volume slider and mute button for the default output device. The slider is\nhorizontal on a tile that is wider than it is tall, and vertical otherwise. It runs no\naction and is not a risk item. The tile shows the widget `label`.",
+          "properties": {
+            "type": {
+              "const": "volume",
               "type": "string"
             }
           },

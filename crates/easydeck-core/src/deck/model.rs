@@ -181,6 +181,26 @@ pub struct Widget {
     pub kind: WidgetKind,
 }
 
+/// How a toggle looks in one state. Every field is optional; a missing one falls back to the
+/// widget's own `label` and `icon`, and to the default tile colour.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(deny_unknown_fields)]
+pub struct ToggleLook {
+    /// Text under the tile in this state. At most 60 characters.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(max = 60))]
+    #[ts(optional)]
+    pub label: Option<String>,
+    /// Icon in this state: a path inside the pack (`icons/...`) or an https URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub icon: Option<String>,
+    /// Tile colour in this state: a hex colour, `#rgb` or `#rrggbb`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub color: Option<String>,
+}
+
 /// The kind of a widget, tagged by `type`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -222,23 +242,36 @@ pub enum WidgetKind {
         #[ts(optional, rename = "holdAction")]
         hold_action: Option<Action>,
     },
-    /// A tile with two states. A tap runs `onAction` or `offAction`.
+    /// A tile with two states. A tap while off runs `onAction` and switches the tile on; a tap
+    /// while on runs `offAction` (if set) and switches it off. The state is kept on this
+    /// device between runs, never in the deck file. It starts off. Each action is a risk item.
     Toggle {
-        /// Action for the on state.
+        /// Action that runs when the tile switches on.
         #[serde(rename = "onAction")]
         #[ts(rename = "onAction")]
         on_action: Action,
-        /// Action for the off state.
+        /// Action that runs when the tile switches off. Without it, switching off runs nothing.
         #[serde(rename = "offAction", default, skip_serializing_if = "Option::is_none")]
         #[ts(optional, rename = "offAction")]
         off_action: Option<Action>,
+        /// Look while on. Missing fields use the widget's own `label` and `icon`, and the
+        /// default tile colour.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        on: Option<ToggleLook>,
+        /// Look while off. Missing fields use the widget's own `label` and `icon`, and the
+        /// default tile colour.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        off: Option<ToggleLook>,
     },
     /// Shows a number from a source as a gauge.
     Gauge {
         /// Id of a source in `sources`.
         #[schemars(regex(pattern = "^[a-z0-9][a-z0-9_-]{0,63}$"))]
         source: String,
-        /// Field of the source value, for example `cpu.load` or `gpu.temp`.
+        /// Metric name: a key of the source's flat payload, for example `cpu.load` or
+        /// `gpu.temp`. It is not a JSON path. A missing or null value shows "no data".
         metric: String,
         /// Value at the empty end. Defaults to 0.
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -259,11 +292,14 @@ pub enum WidgetKind {
         /// Id of a source in `sources`.
         #[schemars(regex(pattern = "^[a-z0-9][a-z0-9_-]{0,63}$"))]
         source: String,
-        /// JSON path into the source value.
+        /// Metric name: a key of the source's flat payload, for example `cpu.load`. It is not
+        /// a JSON path. A missing or null value shows "no data".
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         path: Option<String>,
-        /// Value that counts as OK. Anything else shows as a problem.
+        /// Value that counts as OK. Anything else shows as a problem. A numeric `okWhen`
+        /// compares as a number, so `1` matches `1.0`. Any other `okWhen` compares as text.
+        /// When omitted, any non-zero value is OK.
         #[serde(rename = "okWhen", default, skip_serializing_if = "Option::is_none")]
         #[ts(optional, rename = "okWhen")]
         ok_when: Option<String>,
@@ -294,6 +330,46 @@ pub enum WidgetKind {
         #[ts(optional)]
         show_date: Option<bool>,
     },
+    /// A counter tile. A tap adds `step` to the value; a long press (held at least 600 ms)
+    /// resets it to `start`. The value is kept on this device between runs, never in the deck
+    /// file. It runs no action and is not a risk item. The tile shows the widget `label`.
+    Counter {
+        /// First value, and the value after a reset. Defaults to 0. When `min` or `max` is set,
+        /// `start` must lie between them.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, type = "number")]
+        start: Option<i64>,
+        /// Amount added by each tap. May be negative. Must not be 0. Defaults to 1.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, type = "number")]
+        step: Option<i64>,
+        /// Lowest value. The count stops here. Optional.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, type = "number")]
+        min: Option<i64>,
+        /// Highest value. The count stops here. Optional.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, type = "number")]
+        max: Option<i64>,
+    },
+    /// A countdown or stopwatch tile. A tap starts, pauses and resumes it; a long press (held
+    /// at least 600 ms) resets it. At the end of a countdown the tile changes colour and
+    /// pulses until the next tap. No sound. The state is kept in memory only: it is lost when
+    /// the app closes. It runs no action and is not a risk item. The tile shows the widget
+    /// `label`.
+    Timer {
+        /// `countdown` counts down from `durationS`; `stopwatch` counts up.
+        mode: TimerMode,
+        /// Countdown only: length in seconds, 1 to 86400. Required for a countdown. A
+        /// stopwatch must not set it.
+        #[serde(rename = "durationS", default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, rename = "durationS")]
+        duration_s: Option<u32>,
+    },
+    /// A volume slider and mute button for the default output device. The slider is
+    /// horizontal on a tile that is wider than it is tall, and vertical otherwise. It runs no
+    /// action and is not a risk item. The tile shows the widget `label`.
+    Volume {},
     /// Controls the system media session (any player that reports to Windows). It has no
     /// provider and no volume control.
     Media {
@@ -335,6 +411,14 @@ pub enum TextKind {
     Label,
     Clock,
     Date,
+}
+
+/// What a timer tile does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "snake_case")]
+pub enum TimerMode {
+    Countdown,
+    Stopwatch,
 }
 
 /// A media control button.

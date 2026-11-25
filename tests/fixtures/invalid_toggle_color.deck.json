@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "name": "Toggle deck",
+  "settings": {
+    "homePage": "home"
+  },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "widgets": [
+        {
+          "id": "mic",
+          "type": "toggle",
+          "label": "Mic",
+          "icon": "🎤",
+          "onAction": { "type": "key_macro", "keys": ["ctrl+m"] },
+          "offAction": { "type": "key_macro", "keys": ["ctrl+m"] },
+          "on": { "label": "Live", "icon": "🔴", "color": "red" },
+          "off": { "label": "Muted", "color": "#333" },
+          "position": { "x": 0, "y": 0 }
+        },
+        {
+          "id": "lamp",
+          "type": "toggle",
+          "label": "Lamp",
+          "onAction": { "type": "key_macro", "keys": ["f9"] },
+          "position": { "x": 1, "y": 0 }
+        }
+      ]
+    }
+  ]
+}
