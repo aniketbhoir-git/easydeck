@@ -320,6 +320,20 @@ pub enum WidgetKind {
         #[ts(optional, type = "number")]
         max: Option<i64>,
     },
+    /// A countdown or stopwatch tile. A tap starts, pauses and resumes it; a long press (held
+    /// at least 600 ms) resets it. At the end of a countdown the tile changes colour and
+    /// pulses until the next tap. No sound. The state is kept in memory only: it is lost when
+    /// the app closes. It runs no action and is not a risk item. The tile shows the widget
+    /// `label`.
+    Timer {
+        /// `countdown` counts down from `durationS`; `stopwatch` counts up.
+        mode: TimerMode,
+        /// Countdown only: length in seconds, 1 to 86400. Required for a countdown. A
+        /// stopwatch must not set it.
+        #[serde(rename = "durationS", default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, rename = "durationS")]
+        duration_s: Option<u32>,
+    },
     /// Controls the system media session (any player that reports to Windows). It has no
     /// provider and no volume control.
     Media {
@@ -361,6 +375,14 @@ pub enum TextKind {
     Label,
     Clock,
     Date,
+}
+
+/// What a timer tile does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "snake_case")]
+pub enum TimerMode {
+    Countdown,
+    Stopwatch,
 }
 
 /// A media control button.

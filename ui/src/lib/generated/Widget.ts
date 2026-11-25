@@ -4,6 +4,7 @@ import type { MediaControl } from "./MediaControl";
 import type { Order } from "./Order";
 import type { Position } from "./Position";
 import type { TextKind } from "./TextKind";
+import type { TimerMode } from "./TimerMode";
 
 /**
  * A tile on a page. The `type` field picks the kind; each kind adds its own fields. A field
@@ -136,7 +137,16 @@ min?: number,
 /**
  * Highest value. The count stops here. Optional.
  */
-max?: number, } | { "type": "media", 
+max?: number, } | { "type": "timer", 
+/**
+ * `countdown` counts down from `durationS`; `stopwatch` counts up.
+ */
+mode: TimerMode, 
+/**
+ * Countdown only: length in seconds, 1 to 86400. Required for a countdown. A
+ * stopwatch must not set it.
+ */
+durationS?: number, } | { "type": "media", 
 /**
  * Controls to show. Each appears at most once.
  */

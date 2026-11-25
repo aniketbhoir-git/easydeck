@@ -39,6 +39,12 @@ fn counter_fixture_loads() {
     assert_eq!(deck.pages[0].widgets.len(), 2);
 }
 
+#[test]
+fn timer_fixture_loads() {
+    let deck = load("valid_timer.deck.json").expect("timer fixture should load");
+    assert_eq!(deck.pages[0].widgets.len(), 2);
+}
+
 /// (fixture, expected error path, expected message substring)
 const INVALID: &[(&str, &str, &str)] = &[
     (
@@ -139,6 +145,16 @@ const INVALID: &[(&str, &str, &str)] = &[
         "invalid_counter_range.deck.json",
         "/pages/0/widgets/0",
         "outside its min and max",
+    ),
+    (
+        "invalid_timer_duration.deck.json",
+        "/pages/0/widgets/0",
+        "outside 1 to 86400",
+    ),
+    (
+        "invalid_timer_stopwatch.deck.json",
+        "/pages/0/widgets/0",
+        "must not set durationS",
     ),
     ("invalid_not_json.deck.json", "", "not valid JSON"),
     ("does_not_exist.deck.json", "", "could not read"),

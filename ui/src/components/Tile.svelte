@@ -4,6 +4,7 @@
   import GaugeWidget from './GaugeWidget.svelte'
   import StatusWidget from './StatusWidget.svelte'
   import Counter from './Counter.svelte'
+  import Timer from './Timer.svelte'
   import TextWidget from './TextWidget.svelte'
 
   // `hold` is true for a long press: the app then runs the widget's holdAction.
@@ -17,20 +18,26 @@
   const hasHold = $derived('holdAction' in widget && !!widget.holdAction)
   // A counter handles its own tap and long press; it makes no IPC call.
   let counter = $state<{ tap: () => void; reset: () => void }>()
-  const isCounter = $derived(widget.type === 'counter')
+  // A timer does the same, and also tells the tile when a countdown has ended.
+  let timer = $state<{ tap: () => void; reset: () => void; isEnded: () => boolean }>()
+  const own = $derived(
+    widget.type === 'counter' ? counter : widget.type === 'timer' ? timer : undefined,
+  )
+  const isSelfHandled = $derived(widget.type === 'counter' || widget.type === 'timer')
 </script>
 
 <button
   type="button"
   class="tile"
   class:pressed
+  class:ended={timer?.isEnded()}
   data-widget-id={widget.id}
   style:grid-column="{pos.x + 1} / span {pos.w ?? 1}"
   style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
   use:press={{
-    onTap: () => (isCounter ? counter?.tap() : onpress(widget.id)),
-    onHold: isCounter
-      ? () => counter?.reset()
+    onTap: () => (isSelfHandled ? own?.tap() : onpress(widget.id)),
+    onHold: isSelfHandled
+      ? () => own?.reset()
       : hasHold
         ? () => onpress(widget.id, true)
         : undefined,
@@ -46,6 +53,8 @@
     <StatusWidget {widget} />
   {:else if widget.type === 'counter'}
     <Counter {widget} bind:this={counter} />
+  {:else if widget.type === 'timer'}
+    <Timer {widget} bind:this={timer} />
   {:else if widget.icon}
     <span class="icon" aria-hidden="true">{widget.icon}</span>
   {/if}
@@ -83,6 +92,20 @@
     transform: scale(0.94);
     background: #3b4252;
     border-color: #7aa2f7;
+  }
+
+  /* A countdown that has run out: new colour and a pulse until the next tap. */
+  .tile.ended {
+    background: #7c2d2d;
+    border-color: #f7768e;
+    animation: ended-pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes ended-pulse {
+    50% {
+      background: #b04040;
+      transform: scale(1.04);
+    }
   }
 
   .icon {
