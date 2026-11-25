@@ -1,0 +1,7 @@
+---
+source: crates/easydeck-core/tests/deck_diff.rs
+expression: text(&d)
+---
+Moved pages/home/widgets/clock: moved tile "clock" from (0,0 1x1) to (3,1 1x1)
+Changed! pages/home/widgets/boost: changed macro tile "Boost": action: key macro [ctrl+b] -> key macro [ctrl+shift+b]
+Added! pages/home/widgets/game: added launch tile "Game"

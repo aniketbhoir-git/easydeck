@@ -60,6 +60,11 @@ fn toggle_fixture_loads() {
 /// (fixture, expected error path, expected message substring)
 const INVALID: &[(&str, &str, &str)] = &[
     (
+        "invalid_dup_page_id.deck.json",
+        "/pages/1/id",
+        "duplicate page id",
+    ),
+    (
         "invalid_version.deck.json",
         "/version",
         "unsupported deck version 2; this build supports 1",
