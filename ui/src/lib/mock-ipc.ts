@@ -9,6 +9,8 @@ declare global {
     __ipcCalls: { cmd: string; args: unknown }[]
     /** Test helper: pushes a source reading, as the app does for source events. */
     __emitSource: (id: string, payload: Record<string, number | null>) => Promise<void>
+    /** Test helper: pushes a volume event, as the app does when Windows changes the volume. */
+    __emitVolume: (payload: { level: number; muted: boolean }) => Promise<void>
   }
 }
 
@@ -158,9 +160,35 @@ export const timerDeck: Deck = {
   ],
 }
 
+// A deck with a wide and a tall volume tile. Open the UI with `?deck=volume`. A separate
+// fixture so the starter deck, and its screenshot baselines, stay unchanged.
+export const volumeDeck: Deck = {
+  version: 1,
+  name: 'Volume deck',
+  sources: {},
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 4, rows: 2 },
+      widgets: [
+        { id: 'vol-wide', type: 'volume', label: 'Volume', position: { x: 0, y: 0, w: 2, h: 1 } },
+        { id: 'vol-tall', type: 'volume', position: { x: 2, y: 0, w: 1, h: 2 } },
+      ],
+    },
+  ],
+}
+
+// In-memory system volume for the mock. `?volume=off` makes the volume commands fail.
+const volume = { level: 40, muted: false }
+
 export function installMockIpc(): void {
   window.__ipcCalls = []
   window.__emitSource = (id, payload) => emit('source:' + id, payload)
+  window.__emitVolume = (payload) => {
+    Object.assign(volume, payload)
+    return emit('volume', payload)
+  }
   mockIPC((cmd, args) => {
     window.__ipcCalls.push({ cmd, args })
     if (cmd === 'load_deck') {
@@ -168,9 +196,17 @@ export function installMockIpc(): void {
       if (which === 'no-positions') return noPositionsDeck
       if (which === 'counter') return counterDeck
       if (which === 'timer') return timerDeck
+      if (which === 'volume') return volumeDeck
       return fixtureDeck
     }
     if (cmd === 'run_action') return undefined
+    if (cmd.startsWith('volume_')) {
+      if (new URLSearchParams(location.search).get('volume') === 'off') throw new Error('no device')
+      const a = (args ?? {}) as { level?: number; muted?: boolean }
+      if (cmd === 'volume_set') volume.level = a.level as number
+      if (cmd === 'volume_mute') volume.muted = a.muted as boolean
+      return cmd === 'volume_get' ? { ...volume } : undefined
+    }
     throw new Error(`unmocked command: ${cmd}`)
   }, { shouldMockEvents: true })
 }

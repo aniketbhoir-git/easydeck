@@ -685,6 +685,19 @@
           "type": "object"
         },
         {
+          "description": "A volume slider and mute button for the default output device. The slider is\nhorizontal on a tile that is wider than it is tall, and vertical otherwise. It runs no\naction and is not a risk item. The tile shows the widget `label`.",
+          "properties": {
+            "type": {
+              "const": "volume",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
           "description": "Controls the system media session (any player that reports to Windows). It has no\nprovider and no volume control.",
           "properties": {
             "controls": {

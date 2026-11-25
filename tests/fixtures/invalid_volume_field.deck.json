@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "Volume deck",
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": { "columns": 2, "rows": 1 },
+      "widgets": [
+        { "id": "vol", "type": "volume", "step": 5, "position": { "x": 0, "y": 0 } }
+      ]
+    }
+  ]
+}
