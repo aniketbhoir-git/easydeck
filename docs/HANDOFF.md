@@ -10,8 +10,10 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 
 - Updated: 2026-11-25
 - `main`: A-2 (#41), A-7 (#51), A-3 (#50), A-4 (#52), G-1 (#53), A-9 (#55), G-6 (#57),
-  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62), G-4 (#63), G-5 (#64) merged.
-- Open for the owner: R2-3 media (PR #65, `review:owner`).
+  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62), G-4 (#63), G-5 (#64), #67 (follow-up #56),
+  #68 (follow-up #60), R5-1 (#70), R4-1 (#71), R4-2 (#74) merged.
+- Open for the owner (`review:owner`, not self-merged): PR #65 (R2-3 media), PR #76 (A-8
+  approval ledger and risk gate, head 5ea2529).
 - Check command: `cargo xtask check` (Windows), `cargo xtask check --core` (Linux).
 
 ## Done (this run)
@@ -40,13 +42,24 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
   volume on failure; it now restores in a `Drop` guard.
 - G-5 (#64) merged: toggle look per state; `run_action { widgetId, toggle: 'on' | 'off' }`.
   The review made a plain tap or a hold on a toggle `Invalid`.
+- #67 merged: stronger layout property tests and resolve/mock parity (follow-up #56).
+- #68 merged: counter safe-integer range and deck-reload key (follow-up #60).
+- R5-1 (#70) merged: deck diff with risk marks. The review caught remote icon forms that were
+  not flagged; `icon_is_inert` is now an allow-list.
+- R4-1 (#71) merged: editor mode (hold 1.5 s), inspector, `validate_deck`.
+- R4-2 (#74) merged: launch and macro forms. The review caught a key listener that stayed on;
+  recording now stops on Esc, blur and selection change. Follow-up #75.
+- A-8 (#76) built and reviewed; open for the owner. The review caught a re-seed after a
+  corrupt ledger and an overwrite of an unreadable ledger; both fixed.
 - Gadget issues filed: G-1 #44, G-2 #45, G-3 #46, G-4 #47, G-5 #48, G-6 #49 (label `gadget`).
 
 ## Next
 
-1. R2-3 media on the system media session (#8; the old title said Spotify): PR #65 waits for
+1. R4-3. It depends on the A-8 merge (PR #76).
+2. R2-3 media on the system media session (#8; the old title said Spotify): PR #65 waits for
    the owner's review.
-2. Follow-ups: #56 layout tests, #60 counter nits.
+3. Follow-ups: #69 vitest flake; #72 after R1-4; #73 exe picker (owner decision, see
+   "Owner decisions waiting"); #75 key-name contract, before the Windows key sender (R3-1).
 
 Skipped: A-1 (#30, needs the owner at the touch monitor), A-6 (#35, waits for A-1),
 A-5 (#34, runs after milestone M1).
@@ -76,6 +89,19 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Volume: poll the default device every 500 ms instead of a COM callback (G-4) | Simpler; easy to swap | Implement `IAudioEndpointVolumeCallback` |
 | 2026-11-25 | Toggle colour: validator rule `toggle-color` only, no schema pattern (G-5) | A schema pattern gives a vague `oneOf` error; the rule gives a fix hint | Add the pattern |
 | 2026-11-25 | R2-3 media PR is not self-merged; it waits for the owner | The backlog marks R2-3 `review:owner` (no CODEOWNERS file exists) | Owner merges or says to self-merge |
+| 2026-11-25 | R4-2 key names come from an allow-list of `e.code` values. Modifiers are `ctrl+alt+shift+win+`. A comma is rejected. Names follow US physical positions, so the sender must map by scan code (#75) | A name must not depend on the keyboard layout | Change the allow-list and the key sender together |
+| 2026-11-25 | The validator reports a missing launch field at `<widget>/<slot>/<field>` | The editor can mark the exact field | Report at the action path |
+| 2026-11-25 | A-8 fingerprint = SHA-256 of `easydeck.risk.v1\0` + canonical JSON of what runs | A change to what runs must change the fingerprint | Change the prefix to version the format |
+| 2026-11-25 | A-8 ledger `approvals.json` in app data, atomic write. A corrupt file becomes a `.corrupt` copy plus a fresh empty file, with no re-seed. An unreadable file means memory only for the session. The starter deck is seeded only when no file exists | A damaged ledger must not approve anything by itself | Change `approval` store |
+| 2026-11-25 | A-8 PR #76 is not self-merged (`review:owner`) | The backlog marks A-8 `review:owner` | Owner merges or says to self-merge |
+| 2026-11-25 | New `icon-form` rule rejects text icons with `. : / % @`. It breaks old decks such as `v1.2` | Keeps icon text from looking like a path or a URL | Remove the rule or narrow the set |
+
+## Owner decisions waiting
+
+1. A-8: hand-written SHA-256, or approve the `sha2` crate (outside SPEC §2)?
+2. R5-2 pack format: `zip` crate (recommended), hand-written zip, or one JSON file?
+3. #73: Tauri dialog plugin (`dialog:allow-open` only), or keep the text field?
+4. Review and merge PR #65 and PR #76.
 
 ## Test queue for the owner
 
@@ -117,3 +143,10 @@ A-5 (#34, runs after milestone M1).
     4. Do steps 2 and 3 again with player B (for example VLC). Start B last.
     5. Close both players. The tile goes back to "Nothing playing".
     6. With `controls: ["play_pause"]`, only that button shows.
+11. **A-8 approval ledger (PR #76, review it line by line).** From `ui/`, run
+    `npx vite --mode e2e` or `npm run tauri dev`.
+    1. A tile with a launch action shows a lock badge.
+    2. Tap the tile. The risk review opens.
+    3. Approve it. Only that tile unlocks.
+    4. Delete `approvals.json` in the app data folder and start again. Only the starter deck
+       is seeded as approved.
