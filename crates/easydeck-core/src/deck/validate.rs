@@ -315,6 +315,20 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
                 "set step to a non-zero whole number, or remove it to use 1",
             ));
         }
+        const SAFE: i64 = (1 << 53) - 1;
+        for (name, v) in [("start", start), ("step", step), ("min", min), ("max", max)] {
+            if v.is_some_and(|n| !(-SAFE..=SAFE).contains(&n)) {
+                errors.push(ValidationError::new(
+                    base,
+                    "counter-safe-range",
+                    format!(
+                        "counter \"{}\" has {name} outside the safe whole-number range",
+                        widget.id
+                    ),
+                    format!("set {name} between -9007199254740991 and 9007199254740991"),
+                ));
+            }
+        }
         let start = start.unwrap_or(0);
         let low = min.is_some_and(|m| start < m);
         let high = max.is_some_and(|m| start > m);
