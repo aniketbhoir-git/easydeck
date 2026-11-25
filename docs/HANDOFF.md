@@ -10,8 +10,8 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 
 - Updated: 2026-11-25
 - `main`: A-2 (#41), A-7 (#51), A-3 (#50), A-4 (#52), G-1 (#53), A-9 (#55), G-6 (#57),
-  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62) merged.
-- Running: G-4 (#47) volume and G-5 (#48) toggle look, each in its own worktree.
+  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62), G-4 (#63) merged.
+- Running: G-5 (#48) toggle look (PR #64) and R2-3 (#8) media, each in its own worktree.
 - Check command: `cargo xtask check` (Windows), `cargo xtask check --core` (Linux).
 
 ## Done (this run)
@@ -36,12 +36,14 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 - R2-2 (#61) merged: gauge and status widgets, shared source store. The review caught a
   frozen value on a silent source; the store now shows "no data" after 3× the interval.
 - G-3 (#62) merged: countdown and stopwatch tile on a monotonic clock.
+- G-4 (#63) merged: volume tile. The review caught a probe test that did not restore the
+  volume on failure; it now restores in a `Drop` guard.
 - Gadget issues filed: G-1 #44, G-2 #45, G-3 #46, G-4 #47, G-5 #48, G-6 #49 (label `gadget`).
 
 ## Next
 
-1. G-4 volume (#47) and G-5 toggle look (#48), running.
-2. R2-3 media (#8).
+1. G-5 toggle look (#48), PR #64.
+2. R2-3 media (#8): PR stays open for the owner's review.
 3. Follow-ups: #56 layout tests, #60 counter nits.
 
 Skipped: A-1 (#30, needs the owner at the touch monitor), A-6 (#35, waits for A-1),
@@ -72,6 +74,7 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Status `okWhen`: a number compares as a number, other values as text; no `okWhen` means non-zero is OK. `path` is a metric name (R2-2) | SPEC §4 does not define it | Change the model doc and `gauge.ts` |
 | 2026-11-25 | A tap on an ended countdown clears the pulse and resets; timer state is not kept across app runs (G-3) | Simplest; issue allows it | Change `timer.ts` |
 | 2026-11-25 | Volume: poll the default device every 500 ms instead of a COM callback (G-4) | Simpler; easy to swap | Implement `IAudioEndpointVolumeCallback` |
+| 2026-11-25 | R2-3 media PR is not self-merged; it waits for the owner | The backlog marks R2-3 `review:owner` (no CODEOWNERS file exists) | Owner merges or says to self-merge |
 
 ## Test queue for the owner
 
