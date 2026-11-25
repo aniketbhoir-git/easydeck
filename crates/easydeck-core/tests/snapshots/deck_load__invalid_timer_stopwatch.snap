@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/0",
+    "rule": "timer-duration",
+    "message": "stopwatch \"lap\" must not set durationS",
+    "fix": "remove durationS, or change mode to countdown"
+  }
+]

@@ -411,6 +411,14 @@
       ],
       "type": "string"
     },
+    "TimerMode": {
+      "description": "What a timer tile does.",
+      "enum": [
+        "countdown",
+        "stopwatch"
+      ],
+      "type": "string"
+    },
     "Trigger": {
       "additionalProperties": false,
       "description": "Context rule that opens a page while a game runs.",
@@ -649,6 +657,30 @@
           },
           "required": [
             "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A countdown or stopwatch tile. A tap starts, pauses and resumes it; a long press (held\nat least 600 ms) resets it. At the end of a countdown the tile changes colour and\npulses until the next tap. No sound. The state is kept in memory only: it is lost when\nthe app closes. It runs no action and is not a risk item. The tile shows the widget\n`label`.",
+          "properties": {
+            "durationS": {
+              "description": "Countdown only: length in seconds, 1 to 86400. Required for a countdown. A\nstopwatch must not set it.",
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "mode": {
+              "$ref": "#/$defs/TimerMode",
+              "description": "`countdown` counts down from `durationS`; `stopwatch` counts up."
+            },
+            "type": {
+              "const": "timer",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "mode"
           ],
           "type": "object"
         },
