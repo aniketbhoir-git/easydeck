@@ -1,11 +1,14 @@
 // Test-only IPC layer. main.ts imports this module only when the build mode is "e2e"
 // (`vite build --mode e2e`), so it is never part of the production bundle.
 import { mockIPC } from '@tauri-apps/api/mocks'
+import { emit } from '@tauri-apps/api/event'
 import type { Deck } from './api'
 
 declare global {
   interface Window {
     __ipcCalls: { cmd: string; args: unknown }[]
+    /** Test helper: pushes a source reading, as the app does for source events. */
+    __emitSource: (id: string, payload: Record<string, number | null>) => Promise<void>
   }
 }
 
@@ -97,6 +100,7 @@ export const noPositionsDeck: Deck = {
 
 export function installMockIpc(): void {
   window.__ipcCalls = []
+  window.__emitSource = (id, payload) => emit('source:' + id, payload)
   mockIPC((cmd, args) => {
     window.__ipcCalls.push({ cmd, args })
     if (cmd === 'load_deck') {
@@ -104,5 +108,5 @@ export function installMockIpc(): void {
     }
     if (cmd === 'run_action') return undefined
     throw new Error(`unmocked command: ${cmd}`)
-  })
+  }, { shouldMockEvents: true })
 }
