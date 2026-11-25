@@ -9,8 +9,9 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 ## State
 
 - Updated: 2026-11-25
-- `main`: A-2 (#41), A-7 (#51), A-3 (#50), A-4 (#52), G-1 (#53) merged.
-- Running: A-9 (#38) layout and G-6 (#49) long press, each in its own worktree.
+- `main`: A-2 (#41), A-7 (#51), A-3 (#50), A-4 (#52), G-1 (#53), A-9 (#55), G-6 (#57),
+  R2-1 (#58) merged.
+- Running: G-2 (#45) counter and R2-2 (#7) gauge, each in its own worktree.
 - Check command: `cargo xtask check` (Windows), `cargo xtask check --core` (Linux).
 
 ## Done (this run)
@@ -25,14 +26,19 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
   without `--locked`; fixed.
 - G-1 (#53) merged: clock, date and label tile. `format` field replaced by `hour12`,
   `seconds`, `showDate`.
+- A-9 (#55) merged: `position` is optional; `layout::resolve` fills it for the UI only.
+  Follow-up #56: stronger layout tests.
+- G-6 (#57) merged: long press runs `holdAction`. The review caught hold tests that waited
+  on real time; they now run on a paused fake clock (`ui/e2e/hold.spec.ts`).
+- R2-1 (#58) merged: `system_stats` source, event `source:<id>`. The review caught a unit
+  test that started the real `nvidia-smi`; fixed.
 - Gadget issues filed: G-1 #44, G-2 #45, G-3 #46, G-4 #47, G-5 #48, G-6 #49 (label `gadget`).
 
 ## Next
 
-1. A-9 (#38) layout rules.
-2. Gadgets: G-6 long press (#49) → G-2 counter (#45)
-   → G-3 timer (#46) → R2-1 stats (#6) → R2-2 gauge (#7) → G-4 volume (#47) → R2-3 media
-   (#8) → G-5 toggle look (#48).
+1. G-2 counter (#45) and R2-2 gauge (#7), running.
+2. G-3 timer (#46) → G-4 volume (#47) → R2-3 media (#8) → G-5 toggle look (#48).
+3. #56 layout test follow-up.
 
 Skipped: A-1 (#30, needs the owner at the touch monitor), A-6 (#35, waits for A-1),
 A-5 (#34, runs after milestone M1).
@@ -53,6 +59,12 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Text widget: `format` removed; `hour12`, `seconds`, `showDate` added (G-1) | An unused field misleads LLM deck writers | Add `format` back with a parser |
 | 2026-11-25 | Gadget build order follows the research list (clock, counter, timer, gauge, volume, media, toggle look, long press) | The research ranks these as basic and low risk | Reorder the issues |
 
+| 2026-11-25 | `run_action` takes `{ widgetId, hold: true }` for a long press; a hold on a tile without `holdAction` is a tap (G-6) | A slow touch must not be lost | Change `press.ts` |
+| 2026-11-25 | The approval step must check the action that runs (`holdAction` when `hold` is true) | Review note on G-6 | — (rule for the approval issue) |
+| 2026-11-25 | R2-1 reads CPU and RAM with windows-rs (`GetSystemTimes`, `GlobalMemoryStatusEx`), not `sysinfo` | `sysinfo` is not in SPEC §2; a new dependency needs the owner | Owner approves `sysinfo` |
+| 2026-11-25 | GPU load from `nvidia-smi` (hidden window, 2 s timeout, off after one failure); `cpu.temp` is always `null` | No driver-free source for CPU temperature | Add a sensor source later |
+| 2026-11-25 | Counter value kept in WebView `localStorage`, key `easydeck:widget:<deck>:<widget>` (G-2) | Never in the deck file; simplest store | Move to an app-side state file |
+
 ## Test queue for the owner
 
 1. **A-1 focus spike (PR #42, draft).** Run the spike in `spikes/focus/` on the PC with the
@@ -65,3 +77,5 @@ A-5 (#34, runs after milestone M1).
 4. **G-1 clock.** Open `docs/screenshots/G-1-clock-1920x480.png` and
    `docs/screenshots/G-1-clock-1024x600.png`. Then run `npm run tauri dev` from `ui/` and
    check that the clock ticks and the date line is right for your locale.
+5. **R2-1 stats.** Run `npm run tauri dev` from `ui/`. Check that the CPU gauge moves. If the
+   PC has an NVIDIA GPU, check that the GPU value shows. No console window may flash.
