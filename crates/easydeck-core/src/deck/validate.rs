@@ -262,6 +262,7 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
         WidgetKind::Toggle {
             on_action,
             off_action,
+            ..
         } => std::iter::once(on_action)
             .chain(off_action.as_ref())
             .collect(),
@@ -335,6 +336,25 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
                 ),
                 "set start so that min <= start <= max, or change min or max",
             ));
+        }
+    }
+
+    if let WidgetKind::Toggle { on, off, .. } = &widget.kind {
+        for (name, look) in [("on", on), ("off", off)] {
+            let Some(color) = look.as_ref().and_then(|l| l.color.as_deref()) else {
+                continue;
+            };
+            if !is_hex_color(color) {
+                errors.push(ValidationError::new(
+                    base,
+                    "toggle-color",
+                    format!(
+                        "toggle \"{}\" has {name}.color \"{color}\", which is not a hex colour",
+                        widget.id
+                    ),
+                    format!("set {name}.color to #rgb or #rrggbb, for example \"#2ecc71\""),
+                ));
+            }
         }
     }
 
@@ -413,4 +433,10 @@ fn layout_error(page_index: usize, page: &Page, e: LayoutError) -> ValidationErr
             "make the grid larger, remove a widget, or move the explicit positions so a cell is free",
         ),
     }
+}
+
+/// `#rgb` or `#rrggbb`. Anything else is refused, so a colour can never carry CSS.
+fn is_hex_color(s: &str) -> bool {
+    s.strip_prefix('#')
+        .is_some_and(|h| matches!(h.len(), 3 | 6) && h.bytes().all(|b| b.is_ascii_hexdigit()))
 }

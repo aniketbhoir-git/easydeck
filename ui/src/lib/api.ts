@@ -29,6 +29,11 @@ export function runAction(widgetId: string, hold = false): Promise<void> {
   return invoke<void>('run_action', hold ? { widgetId, hold: true } : { widgetId })
 }
 
+// A toggle tap sends the state it switches to. The backend picks onAction or offAction.
+export function runToggle(widgetId: string, toggle: 'on' | 'off'): Promise<void> {
+  return invoke<void>('run_action', { widgetId, toggle })
+}
+
 /** A widget whose position is filled in. `load_deck` places every widget in Rust
  *  (easydeck-core `layout::resolve`), so the UI never decides placement itself. */
 export type PlacedWidget = Widget & { position: Position }
