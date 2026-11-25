@@ -2,11 +2,12 @@
   import type { Widget } from '../lib/api'
   import { formatGaugeValue, gaugeAngle, metricValue, GAUGE_SWEEP_DEG } from '../lib/gauge'
   import { sourceStore } from '../lib/source-store'
+  import { sourceIntervalMs } from '../lib/source-interval'
 
   type GaugeData = Extract<Widget, { type: 'gauge' }>
   let { widget }: { widget: GaugeData } = $props()
 
-  const reading = $derived(sourceStore(widget.source))
+  const reading = $derived(sourceStore(widget.source, sourceIntervalMs(widget.source)))
   const value = $derived(metricValue($reading, widget.metric))
   const angle = $derived(
     value === null ? 0 : gaugeAngle(value, widget.min ?? 0, widget.max ?? 100),
@@ -19,7 +20,15 @@
   const filled = $derived((C * angle) / 360)
 </script>
 
-<div class="gauge" data-testid="gauge" data-state={value === null ? 'nodata' : 'value'}>
+<div
+  class="gauge"
+  data-testid="gauge"
+  role="img"
+  aria-label={value === null
+    ? `${widget.label ?? widget.metric} no data`
+    : `${widget.label ?? widget.metric} ${formatGaugeValue(value)}${widget.unit ? ` ${widget.unit}` : ''}`}
+  data-state={value === null ? 'nodata' : 'value'}
+>
   <svg viewBox="0 0 100 100" aria-hidden="true">
     <circle class="track" cx="50" cy="50" r={R} stroke-dasharray="{track} {C}" transform="rotate(135 50 50)" />
     {#if value !== null}

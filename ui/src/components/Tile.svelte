@@ -40,7 +40,7 @@
     <span class="icon" aria-hidden="true">{widget.icon}</span>
   {/if}
   {#if widget.label}
-    <span class="label">{widget.label}</span>
+    <span class="label" aria-hidden={widget.type === 'gauge' || widget.type === 'status' ? 'true' : undefined}>{widget.label}</span>
   {/if}
 </button>
 

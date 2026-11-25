@@ -528,7 +528,7 @@
               "type": "number"
             },
             "metric": {
-              "description": "Field of the source value, for example `cpu.load` or `gpu.temp`.",
+              "description": "Metric name: a key of the source's flat payload, for example `cpu.load` or\n`gpu.temp`. It is not a JSON path. A missing or null value shows \"no data\".",
               "type": "string"
             },
             "min": {
@@ -562,11 +562,11 @@
           "description": "Shows OK or a problem from a source value.",
           "properties": {
             "okWhen": {
-              "description": "Value that counts as OK. Anything else shows as a problem.",
+              "description": "Value that counts as OK. Anything else shows as a problem. A numeric `okWhen`\ncompares as a number, so `1` matches `1.0`. Any other `okWhen` compares as text.\nWhen omitted, any non-zero value is OK.",
               "type": "string"
             },
             "path": {
-              "description": "JSON path into the source value.",
+              "description": "Metric name: a key of the source's flat payload, for example `cpu.load`. It is not\na JSON path. A missing or null value shows \"no data\".",
               "type": "string"
             },
             "source": {

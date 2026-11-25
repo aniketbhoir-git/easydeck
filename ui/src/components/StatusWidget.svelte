@@ -2,16 +2,23 @@
   import type { Widget } from '../lib/api'
   import { evaluateStatus } from '../lib/gauge'
   import { sourceStore } from '../lib/source-store'
+  import { sourceIntervalMs } from '../lib/source-interval'
 
   type StatusData = Extract<Widget, { type: 'status' }>
   let { widget }: { widget: StatusData } = $props()
 
-  const reading = $derived(sourceStore(widget.source))
+  const reading = $derived(sourceStore(widget.source, sourceIntervalMs(widget.source)))
   const state = $derived(evaluateStatus($reading, widget.path, widget.okWhen))
   const text = $derived({ ok: 'OK', problem: 'Problem', nodata: 'No data' }[state])
 </script>
 
-<div class="status" data-testid="status" data-state={state}>
+<div
+  class="status"
+  data-testid="status"
+  role="img"
+  aria-label="{widget.label ?? 'Status'} {{ ok: 'OK', problem: 'problem', nodata: 'no data' }[state]}"
+  data-state={state}
+>
   <span class="dot" aria-hidden="true"></span>
   <span class="text">{text}</span>
 </div>
