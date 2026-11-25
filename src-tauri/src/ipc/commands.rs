@@ -32,6 +32,15 @@ pub fn run_action_impl(state: &AppState, widget_id: &str, hold: bool) -> Result<
     }
 }
 
+/// Stub: resolves which action a toggle runs when it switches to `to_on`, and returns Ok.
+/// Never launches or sends anything. The UI sends the target state; the backend picks
+/// `onAction` or `offAction` from the deck, so the UI never names an action. When approval
+/// lands (R2), it must check this resolved action, the same as for `action` and `holdAction`.
+/// Switching off a toggle that has no `offAction` runs nothing and is Ok.
+pub fn run_toggle_impl(state: &AppState, widget_id: &str, to_on: bool) -> Result<(), AppError> {
+    state.toggle_action(widget_id, to_on).map(|_action| ())
+}
+
 #[tauri::command]
 pub fn load_deck(state: tauri::State<'_, AppState>) -> Deck {
     load_deck_impl(&state)
@@ -42,8 +51,17 @@ pub fn run_action(
     state: tauri::State<'_, AppState>,
     widget_id: String,
     hold: Option<bool>,
+    toggle: Option<String>,
 ) -> Result<(), AppError> {
-    run_action_impl(&state, &widget_id, hold.unwrap_or(false))
+    match toggle.as_deref() {
+        None => run_action_impl(&state, &widget_id, hold.unwrap_or(false)),
+        Some("on") => run_toggle_impl(&state, &widget_id, true),
+        Some("off") => run_toggle_impl(&state, &widget_id, false),
+        Some(other) => Err(AppError::Invalid {
+            message: "toggle must be \"on\" or \"off\"".into(),
+            detail: Some(other.to_string()),
+        }),
+    }
 }
 
 #[cfg(test)]
@@ -72,6 +90,41 @@ mod tests {
         let state = AppState::bundled().unwrap();
         let err = run_action_impl(&state, "notes", true).unwrap_err();
         assert_eq!(err.code(), "not_found");
+    }
+
+    const TOGGLE_DECK: &str = r#"{"version":1,"name":"t","pages":[{"id":"home","title":"Home",
+        "grid":{"columns":3,"rows":1},"widgets":[
+        {"id":"both","type":"toggle","onAction":{"type":"key_macro","keys":["a"]},
+         "offAction":{"type":"key_macro","keys":["b"]}},
+        {"id":"one","type":"toggle","onAction":{"type":"key_macro","keys":["a"]}},
+        {"id":"plain","type":"macro","action":{"type":"key_macro","keys":["c"]}}]}]}"#;
+
+    #[test]
+    fn toggle_picks_on_or_off_action() {
+        use easydeck_core::deck::Action;
+        let state = AppState::from_json(TOGGLE_DECK).unwrap();
+        let keys = |to_on| match state.toggle_action("both", to_on).unwrap() {
+            Some(Action::KeyMacro { keys, .. }) => keys.clone(),
+            other => panic!("unexpected {other:?}"),
+        };
+        assert_eq!(keys(true), ["a"]);
+        assert_eq!(keys(false), ["b"]);
+        assert!(run_toggle_impl(&state, "both", true).is_ok());
+    }
+
+    #[test]
+    fn toggle_off_without_off_action_runs_nothing() {
+        let state = AppState::from_json(TOGGLE_DECK).unwrap();
+        assert!(state.toggle_action("one", false).unwrap().is_none());
+        assert!(run_toggle_impl(&state, "one", false).is_ok());
+        assert!(state.toggle_action("one", true).unwrap().is_some());
+    }
+
+    #[test]
+    fn toggle_rejects_other_widgets() {
+        let state = AppState::from_json(TOGGLE_DECK).unwrap();
+        assert_eq!(run_toggle_impl(&state, "plain", true).unwrap_err().code(), "invalid");
+        assert_eq!(run_toggle_impl(&state, "ghost", true).unwrap_err().code(), "not_found");
     }
 
     #[test]

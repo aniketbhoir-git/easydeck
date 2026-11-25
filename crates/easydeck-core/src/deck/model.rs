@@ -181,6 +181,26 @@ pub struct Widget {
     pub kind: WidgetKind,
 }
 
+/// How a toggle looks in one state. Every field is optional; a missing one falls back to the
+/// widget's own `label` and `icon`, and to the default tile colour.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(deny_unknown_fields)]
+pub struct ToggleLook {
+    /// Text under the tile in this state. At most 60 characters.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(max = 60))]
+    #[ts(optional)]
+    pub label: Option<String>,
+    /// Icon in this state: a path inside the pack (`icons/...`) or an https URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub icon: Option<String>,
+    /// Tile colour in this state: a hex colour, `#rgb` or `#rrggbb`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub color: Option<String>,
+}
+
 /// The kind of a widget, tagged by `type`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -222,16 +242,28 @@ pub enum WidgetKind {
         #[ts(optional, rename = "holdAction")]
         hold_action: Option<Action>,
     },
-    /// A tile with two states. A tap runs `onAction` or `offAction`.
+    /// A tile with two states. A tap while off runs `onAction` and switches the tile on; a tap
+    /// while on runs `offAction` (if set) and switches it off. The state is kept on this
+    /// device between runs, never in the deck file. It starts off. Each action is a risk item.
     Toggle {
-        /// Action for the on state.
+        /// Action that runs when the tile switches on.
         #[serde(rename = "onAction")]
         #[ts(rename = "onAction")]
         on_action: Action,
-        /// Action for the off state.
+        /// Action that runs when the tile switches off. Without it, switching off runs nothing.
         #[serde(rename = "offAction", default, skip_serializing_if = "Option::is_none")]
         #[ts(optional, rename = "offAction")]
         off_action: Option<Action>,
+        /// Look while on. Missing fields use the widget's own `label` and `icon`, and the
+        /// default tile colour.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        on: Option<ToggleLook>,
+        /// Look while off. Missing fields use the widget's own `label` and `icon`, and the
+        /// default tile colour.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        off: Option<ToggleLook>,
     },
     /// Shows a number from a source as a gauge.
     Gauge {

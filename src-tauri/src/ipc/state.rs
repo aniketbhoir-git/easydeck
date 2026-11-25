@@ -60,6 +60,42 @@ impl AppState {
                 )
         })
     }
+
+    /// The action to run when a toggle switches to `to_on`: its `onAction` or `offAction`.
+    /// `Ok(None)` is a switch to off on a toggle without an `offAction`: nothing to run.
+    /// `Err` when the widget does not exist or is not a toggle.
+    pub fn toggle_action(
+        &self,
+        widget_id: &str,
+        to_on: bool,
+    ) -> Result<Option<&easydeck_core::deck::Action>, AppError> {
+        use easydeck_core::deck::WidgetKind;
+        let widget = self
+            .deck
+            .pages
+            .iter()
+            .flat_map(|p| &p.widgets)
+            .find(|w| w.id == widget_id);
+        match widget.map(|w| &w.kind) {
+            Some(WidgetKind::Toggle {
+                on_action,
+                off_action,
+                ..
+            }) => Ok(if to_on {
+                Some(on_action)
+            } else {
+                off_action.as_ref()
+            }),
+            Some(_) => Err(AppError::Invalid {
+                message: "the widget is not a toggle".into(),
+                detail: Some(widget_id.to_string()),
+            }),
+            None => Err(AppError::NotFound {
+                message: "no such widget".into(),
+                detail: Some(widget_id.to_string()),
+            }),
+        }
+    }
 }
 
 #[cfg(test)]

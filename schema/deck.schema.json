@@ -419,6 +419,26 @@
       ],
       "type": "string"
     },
+    "ToggleLook": {
+      "additionalProperties": false,
+      "description": "How a toggle looks in one state. Every field is optional; a missing one falls back to the\nwidget's own `label` and `icon`, and to the default tile colour.",
+      "properties": {
+        "color": {
+          "description": "Tile colour in this state: a hex colour, `#rgb` or `#rrggbb`.",
+          "type": "string"
+        },
+        "icon": {
+          "description": "Icon in this state: a path inside the pack (`icons/...`) or an https URL.",
+          "type": "string"
+        },
+        "label": {
+          "description": "Text under the tile in this state. At most 60 characters.",
+          "maxLength": 60,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "Trigger": {
       "additionalProperties": false,
       "description": "Context rule that opens a page while a game runs.",
@@ -506,15 +526,23 @@
           "type": "object"
         },
         {
-          "description": "A tile with two states. A tap runs `onAction` or `offAction`.",
+          "description": "A tile with two states. A tap while off runs `onAction` and switches the tile on; a tap\nwhile on runs `offAction` (if set) and switches it off. The state is kept on this\ndevice between runs, never in the deck file. It starts off. Each action is a risk item.",
           "properties": {
+            "off": {
+              "$ref": "#/$defs/ToggleLook",
+              "description": "Look while off. Missing fields use the widget's own `label` and `icon`, and the\ndefault tile colour."
+            },
             "offAction": {
               "$ref": "#/$defs/Action",
-              "description": "Action for the off state."
+              "description": "Action that runs when the tile switches off. Without it, switching off runs nothing."
+            },
+            "on": {
+              "$ref": "#/$defs/ToggleLook",
+              "description": "Look while on. Missing fields use the widget's own `label` and `icon`, and the\ndefault tile colour."
             },
             "onAction": {
               "$ref": "#/$defs/Action",
-              "description": "Action for the on state."
+              "description": "Action that runs when the tile switches on."
             },
             "type": {
               "const": "toggle",

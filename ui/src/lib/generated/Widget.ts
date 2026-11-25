@@ -5,6 +5,7 @@ import type { Order } from "./Order";
 import type { Position } from "./Position";
 import type { TextKind } from "./TextKind";
 import type { TimerMode } from "./TimerMode";
+import type { ToggleLook } from "./ToggleLook";
 
 /**
  * A tile on a page. The `type` field picks the kind; each kind adds its own fields. A field
@@ -56,13 +57,23 @@ action: Action,
  */
 holdAction?: Action, } | { "type": "toggle", 
 /**
- * Action for the on state.
+ * Action that runs when the tile switches on.
  */
 onAction: Action, 
 /**
- * Action for the off state.
+ * Action that runs when the tile switches off. Without it, switching off runs nothing.
  */
-offAction?: Action, } | { "type": "gauge", 
+offAction?: Action, 
+/**
+ * Look while on. Missing fields use the widget's own `label` and `icon`, and the
+ * default tile colour.
+ */
+on?: ToggleLook, 
+/**
+ * Look while off. Missing fields use the widget's own `label` and `icon`, and the
+ * default tile colour.
+ */
+off?: ToggleLook, } | { "type": "gauge", 
 /**
  * Id of a source in `sources`.
  */
