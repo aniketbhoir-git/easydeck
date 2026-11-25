@@ -1,0 +1,99 @@
+name: spike-a1
+
+# Throwaway CI for the A-1 focus spike (question 6). Not part of the product checks.
+on:
+  push:
+    branches: [impl/A-1--focus-spike]
+    paths:
+      - "spikes/**"
+      - ".github/workflows/spike-a1.yml"
+  workflow_dispatch:
+
+jobs:
+  spike:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: spikes/focus
+
+      - name: Build the spike
+        working-directory: spikes/focus
+        run: cargo build --release --locked
+
+      - name: Selftest (SendInput to our own window)
+        id: selftest
+        continue-on-error: true
+        working-directory: spikes/focus
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'a1-selftest.json'
+          $p = Start-Process -FilePath .\target\release\easydeck-a1-focus-spike.exe `
+            -ArgumentList '--selftest','--out',$out -PassThru
+          if (-not $p.WaitForExit(30000)) { $p.Kill(); Write-Host 'selftest hung'; exit 2 }
+          Write-Host "exit code: $($p.ExitCode)"
+          if (Test-Path $out) { Get-Content $out } else { Write-Host 'no result file' }
+          exit $p.ExitCode
+
+      - name: tauri-driver session check (best effort)
+        id: driver
+        continue-on-error: true
+        working-directory: spikes/focus
+        run: |
+          $res = Join-Path $env:RUNNER_TEMP 'a1-tauri-driver.json'
+          '{"session_created":false,"note":"not finished"}' | Set-Content $res
+          cargo install tauri-driver --locked
+          # Match msedgedriver to the installed WebView2 runtime.
+          $key = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+          $ver = (Get-ItemProperty $key).pv
+          Write-Host "WebView2 runtime: $ver"
+          $dir = Join-Path $env:RUNNER_TEMP 'edgedriver'
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          Invoke-WebRequest "https://msedgedriver.microsoft.com/$ver/edgedriver_win64.zip" -OutFile "$dir\d.zip"
+          Expand-Archive "$dir\d.zip" -DestinationPath $dir -Force
+          $app = (Resolve-Path .\target\release\easydeck-a1-focus-spike.exe).Path
+          $env:EASYDECK_SPIKE_VISIBLE = '1'
+          # Diagnostic: does the app honour the WebView2 debugging-port variable at all?
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
+          $probe = Start-Process $app -PassThru
+          Start-Sleep -Seconds 8
+          try { Write-Host ('debug port: ' + (Invoke-RestMethod http://127.0.0.1:9222/json/version).Browser) } catch { Write-Host "debug port: no answer ($_)" }
+          Stop-Process -Id $probe.Id -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 2
+          Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+          $drv = Start-Process tauri-driver -ArgumentList '--native-driver',"$dir\msedgedriver.exe" -PassThru -RedirectStandardOutput "$dir\td.out" -RedirectStandardError "$dir\td.err"
+          Start-Sleep -Seconds 5
+          $caps = @{ capabilities = @{ alwaysMatch = @{ browserName = 'wry'; 'tauri:options' = @{ application = $app } } } } | ConvertTo-Json -Depth 6
+          try {
+            $r = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:4444/session -ContentType 'application/json' -Body $caps
+            $sid = $r.value.sessionId
+            Write-Host "session: $sid"
+            @{ session_created = [bool]$sid; webview2 = $ver } | ConvertTo-Json | Set-Content $res
+            if ($sid) { Invoke-RestMethod -Method Delete -Uri "http://127.0.0.1:4444/session/$sid" | Out-Null }
+          } finally {
+            Get-Content "$dir\td.out","$dir\td.err" -ErrorAction SilentlyContinue | Select-Object -First 30
+            Stop-Process -Id $drv.Id -Force -ErrorAction SilentlyContinue
+            Get-Process easydeck-a1-focus-spike -ErrorAction SilentlyContinue | Stop-Process -Force
+          }
+          if (-not ((Get-Content $res | ConvertFrom-Json).session_created)) { exit 1 }
+
+      - name: Summary
+        if: always()
+        run: |
+          "selftest: ${{ steps.selftest.outcome }}" | Tee-Object -Append $env:GITHUB_STEP_SUMMARY
+          "tauri-driver: ${{ steps.driver.outcome }}" | Tee-Object -Append $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: spike-a1-results
+          path: |
+            ${{ runner.temp }}/a1-selftest.json
+            ${{ runner.temp }}/a1-tauri-driver.json
+          if-no-files-found: warn

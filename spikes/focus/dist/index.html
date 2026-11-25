@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>A-1 focus spike</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #14161a; color: #e8eaed;
+    font: 15px/1.35 Segoe UI, sans-serif; touch-action: manipulation;
+    user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; padding: 12px; box-sizing: border-box; gap: 10px; }
+  #status { font-size: 14px; color: #9aa4b2; }
+  #status b { color: #e8eaed; }
+  #buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  button { min-height: 84px; font-size: 22px; border: 0; border-radius: 14px;
+    background: #2b6cb0; color: #fff; }
+  button:active { background: #1c4a80; transform: scale(0.98); }
+  button.alt { background: #4a5568; }
+  #edit { display: none; }
+  #edit.on { display: block; }
+  #edit input { width: 100%; box-sizing: border-box; font-size: 22px; padding: 10px;
+    user-select: text; -webkit-user-select: text; }
+  #log { flex: 1; overflow: auto; background: #0c0d10; border-radius: 8px; padding: 8px;
+    font: 12px/1.4 Consolas, monospace; white-space: pre-wrap; }
+  .counter { font-size: 18px; }
+</style>
+</head>
+<body>
+  <div id="status">loading...</div>
+  <div id="buttons">
+    <button data-action="tap">Tap test <span class="counter" id="count">0</span></button>
+    <button data-action="keys">Send keys 1 2 3</button>
+    <button data-action="keys_delayed">Send keys after 3 s</button>
+    <button data-action="toggle_edit" class="alt">Toggle edit mode</button>
+    <button data-action="toggle_topmost" class="alt">Toggle topmost</button>
+  </div>
+  <div id="edit"><input id="text" type="text" placeholder="edit mode: type here"></div>
+  <div id="log"></div>
+<script>
+const invoke = window.__TAURI__.core.invoke;
+let lastPointerType = "unknown";
+let count = 0;
+const $ = (id) => document.getElementById(id);
+
+function fgLine(f) {
+  if (!f || !f.hwnd) return "(none)";
+  return `${f.process || "?"}#${f.pid} "${f.title}"` + (f.is_ours ? " [OURS]" : "")
+    + (f.minimized ? " [MIN]" : "") + (f.elevated === true ? " [ELEV]" : "");
+}
+
+function render(rec) {
+  const si = rec.send_input && rec.send_input.events
+    ? ` sendinput=${rec.send_input.events.map(e => e.sent + "/e" + e.last_error).join(",")}` : "";
+  const c = rec.cursor_after && rec.cursor_after.cursor;
+  const line = `${new Date(rec.t_ms).toLocaleTimeString()} ${rec.action} ptr=${rec.pointer_type}`
+    + ` NOACT=${rec.noactivate} TOP=${rec.topmost}\n  before: ${fgLine(rec.fg_before)}`
+    + `\n  after:  ${fgLine(rec.fg_after)}`
+    + (c ? `\n  cursor flags=${c.flags} at ${c.x},${c.y}` : "") + si + "\n";
+  $("log").textContent = line + "\n" + $("log").textContent;
+}
+
+async function refresh() {
+  const i = await invoke("get_info");
+  $("status").innerHTML = `pid <b>${i.pid}</b> | NOACTIVATE <b>${i.noactivate}</b> | TOPMOST <b>${i.topmost}</b>`
+    + ` | monitors: ${i.monitors.map(m => `#${m.index} ${m.w}x${m.h}@${m.x},${m.y}`).join("  ")}`
+    + ` | log: ${i.log_path}`;
+  $("edit").className = i.noactivate ? "" : "on";
+  return i;
+}
+
+document.querySelectorAll("button").forEach((b) => {
+  b.addEventListener("pointerdown", (e) => { lastPointerType = e.pointerType; });
+  b.addEventListener("click", async (e) => {
+    const ptr = e.pointerType || lastPointerType;
+    if (b.dataset.action === "tap") $("count").textContent = ++count;
+    try {
+      render(await invoke("tap", { pointerType: ptr, action: b.dataset.action }));
+      await refresh();
+    } catch (err) { $("log").textContent = "ERROR " + err + "\n" + $("log").textContent; }
+  });
+});
+
+// Used by --selftest: forward key events to Rust so it can tell whether SendInput arrived.
+for (const kind of ["keydown", "keyup"]) {
+  window.addEventListener(kind, (e) => {
+    invoke("report_key", { kind: kind === "keydown" ? "down" : "up", code: e.code, key: e.key });
+  }, true);
+}
+
+refresh().then((i) => { window.focus(); if (i.selftest) invoke("selftest_ready"); });
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+[package]
+name = "easydeck-a1-focus-spike"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Throwaway spike for EasyDeck issue A-1 (focus and input). Not part of the product."
+
+# Standalone on purpose: an empty table keeps this crate out of the repo workspace.
+[workspace]
+
+[features]
+# A plain `cargo build --release` loads the embedded page (no dev server).
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[build-dependencies]
+tauri-build = "2"
+
+[dependencies]
+tauri = "2"
+serde_json = "1"
+
+[dependencies.windows]
+version = "0.62"
+features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_Security",
+  "Win32_System_Threading",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+]
