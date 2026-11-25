@@ -277,21 +277,55 @@ mod tests {
         assert_eq!(out.pages[0].widgets[1].position, pos(1, 0, 1, 1));
     }
 
-    fn arb_position() -> impl Strategy<Value = Option<Position>> {
-        prop_oneof![
-            Just(None),
-            (0u32..8, 0u32..8, 1u32..4, 1u32..4).prop_map(|(x, y, w, h)| pos(x, y, w, h)),
-        ]
+    /// A grid size and positions for it. Most positions fall inside the grid; some reach
+    /// outside it, and some are missing.
+    fn arb_page() -> impl Strategy<Value = (u32, u32, Vec<Option<Position>>)> {
+        (1u32..=8, 1u32..=8).prop_flat_map(|(columns, rows)| {
+            let inside = (0..columns, 0..rows).prop_flat_map(move |(x, y)| {
+                (1..=columns - x, 1..=rows - y).prop_map(move |(w, h)| pos(x, y, w, h))
+            });
+            let anywhere =
+                (0u32..10, 0u32..10, 1u32..4, 1u32..4).prop_map(|(x, y, w, h)| pos(x, y, w, h));
+            let one = prop_oneof![
+                3 => inside,
+                1 => anywhere,
+                2 => Just(None),
+            ];
+            (
+                Just(columns),
+                Just(rows),
+                proptest::collection::vec(one, 0..20),
+            )
+        })
+    }
+
+    /// Independent check: is there a real problem in this input? True when an explicit
+    /// widget leaves the grid, two explicit widgets share a cell, or the widgets without a
+    /// position outnumber the cells left free.
+    fn has_real_problem(columns: u32, rows: u32, positions: &[Option<Position>]) -> bool {
+        let explicit: Vec<Position> = positions.iter().flatten().copied().collect();
+        if explicit
+            .iter()
+            .any(|p| p.x + p.w > columns || p.y + p.h > rows)
+        {
+            return true;
+        }
+        for (i, a) in explicit.iter().enumerate() {
+            for b in &explicit[i + 1..] {
+                if a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h {
+                    return true;
+                }
+            }
+        }
+        let used: u32 = explicit.iter().map(|p| p.w * p.h).sum();
+        let auto = positions.iter().filter(|p| p.is_none()).count() as u32;
+        auto > columns * rows - used
     }
 
     proptest! {
         /// Whatever the input, a successful placement has no overlap and stays in the grid.
         #[test]
-        fn placed_widgets_never_overlap_and_fit(
-            columns in 1u32..=8,
-            rows in 1u32..=8,
-            positions in proptest::collection::vec(arb_position(), 0..20),
-        ) {
+        fn placed_widgets_never_overlap_and_fit((columns, rows, positions) in arb_page()) {
             let n = positions.len();
             if let Ok(placed) = place(&page(columns, rows, positions)) {
                 prop_assert_eq!(placed.len(), n);
@@ -302,6 +336,34 @@ mod tests {
                         prop_assert!(seen.insert(c), "cell {:?} used twice", c);
                     }
                 }
+            }
+        }
+
+        /// On success, every explicit position comes back unchanged.
+        #[test]
+        fn explicit_positions_come_back_unchanged((columns, rows, positions) in arb_page()) {
+            if let Ok(placed) = place(&page(columns, rows, positions.clone())) {
+                for (p, want) in placed.iter().zip(&positions) {
+                    if let Some(want) = want {
+                        prop_assert_eq!((p.x, p.y, p.w, p.h), (want.x, want.y, want.w, want.h));
+                    }
+                }
+            }
+        }
+
+        /// On failure, an independent check finds a real overlap, off-grid widget or full grid.
+        #[test]
+        fn failure_means_a_real_problem((columns, rows, positions) in arb_page()) {
+            if place(&page(columns, rows, positions.clone())).is_err() {
+                prop_assert!(has_real_problem(columns, rows, &positions));
+            }
+        }
+
+        /// A page with a real problem never places.
+        #[test]
+        fn a_real_problem_always_fails((columns, rows, positions) in arb_page()) {
+            if has_real_problem(columns, rows, &positions) {
+                prop_assert!(place(&page(columns, rows, positions)).is_err());
             }
         }
 

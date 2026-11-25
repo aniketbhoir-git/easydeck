@@ -39,5 +39,10 @@ export function runToggle(widgetId: string, toggle: 'on' | 'off'): Promise<void>
 export type PlacedWidget = Widget & { position: Position }
 
 export function placedWidgets(page: Page): PlacedWidget[] {
-  return page.widgets.filter((w): w is PlacedWidget => w.position !== undefined)
+  const placed = page.widgets.filter((w): w is PlacedWidget => w.position !== undefined)
+  if (placed.length < page.widgets.length) {
+    const dropped = page.widgets.filter((w) => w.position === undefined).map((w) => w.id)
+    console.warn(`Page "${page.id}": widgets without a position are not drawn: ${dropped.join(', ')}`)
+  }
+  return placed
 }

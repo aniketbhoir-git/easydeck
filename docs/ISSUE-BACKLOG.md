@@ -488,6 +488,7 @@ Milestone M2 — breadth, open to the community:
   during save never leaves a half-written deck.
 - **Tests:** `vitest` for snap and overlap rules; Playwright drag test with touch; Rust test
   that `save_deck` is atomic.
+- **Note:** Save the original deck, never the resolved one (`layout::resolve` output).
 
 ---
 
