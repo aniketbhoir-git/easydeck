@@ -3,6 +3,7 @@
 import { mockIPC } from '@tauri-apps/api/mocks'
 import { emit } from '@tauri-apps/api/event'
 import type { Deck } from './api'
+import noPositionsResolved from '../../../tests/fixtures/valid_no_positions.resolved.json'
 
 declare global {
   interface Window {
@@ -80,7 +81,8 @@ export const fixtureDeck: Deck = {
 
 // What `load_deck` returns for a deck file whose widgets have no `position`: easydeck-core
 // `layout::resolve` has filled the first free cells in reading order (the same deck as
-// tests/fixtures/valid_no_positions.deck.json). Open the UI with `?deck=no-positions`.
+// tests/fixtures/valid_no_positions.deck.json). The positions come from
+// tests/fixtures/valid_no_positions.resolved.json, which a Rust test checks against `resolve`. Open the UI with `?deck=no-positions`.
 export const noPositionsDeck: Deck = {
   version: 1,
   name: 'No positions',
@@ -90,12 +92,12 @@ export const noPositionsDeck: Deck = {
       id: 'home',
       title: 'Home',
       grid: { columns: 3, rows: 2 },
-      widgets: ['a', 'b', 'c', 'd', 'e'].map((id, i) => ({
+      widgets: (['a', 'b', 'c', 'd', 'e'] as const).map((id) => ({
         id,
         type: 'launch' as const,
         label: id.toUpperCase(),
         action: { type: 'launch' as const, kind: 'steam' as const, appId: 440 },
-        position: { x: i % 3, y: Math.floor(i / 3), w: 1, h: 1 },
+        position: noPositionsResolved[id],
       })),
     },
   ],

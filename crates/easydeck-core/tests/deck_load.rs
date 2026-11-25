@@ -288,6 +288,29 @@ fn deck_without_positions_loads_and_is_placed_in_reading_order() {
     );
 }
 
+/// `layout::resolve` on the fixture must give the positions in
+/// `valid_no_positions.resolved.json`. The e2e mock `noPositionsDeck` in
+/// `ui/src/lib/mock-ipc.ts` imports the same file, so the mock cannot drift from Rust.
+#[test]
+fn resolve_matches_the_ui_mock_positions() {
+    let deck = load("valid_no_positions.deck.json").unwrap();
+    let resolved = easydeck_core::layout::resolve(&deck);
+    let text = std::fs::read_to_string(fixture("valid_no_positions.resolved.json")).unwrap();
+    let want: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let got: serde_json::Map<String, serde_json::Value> = resolved.pages[0]
+        .widgets
+        .iter()
+        .map(|w| {
+            let p = w.position.expect("resolve fills every position");
+            (
+                w.id.clone(),
+                serde_json::json!({ "x": p.x, "y": p.y, "w": p.w, "h": p.h }),
+            )
+        })
+        .collect();
+    assert_eq!(serde_json::Value::Object(got), want);
+}
+
 #[test]
 fn overlap_error_names_both_widgets() {
     let errors = load("invalid_overlap.deck.json").unwrap_err();
