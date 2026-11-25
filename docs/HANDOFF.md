@@ -44,8 +44,8 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 
 ## Next
 
-1. R2-3 media (#8, GitHub title "Spotify widget"; the backlog changed it to the system media
-   session): PR #65 waits for the owner's review.
+1. R2-3 media on the system media session (#8; the old title said Spotify): PR #65 waits for
+   the owner's review.
 2. Follow-ups: #56 layout tests, #60 counter nits.
 
 Skipped: A-1 (#30, needs the owner at the touch monitor), A-6 (#35, waits for A-1),
