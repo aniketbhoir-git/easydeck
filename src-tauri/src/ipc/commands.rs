@@ -123,8 +123,14 @@ mod tests {
     #[test]
     fn toggle_rejects_other_widgets() {
         let state = AppState::from_json(TOGGLE_DECK).unwrap();
-        assert_eq!(run_toggle_impl(&state, "plain", true).unwrap_err().code(), "invalid");
-        assert_eq!(run_toggle_impl(&state, "ghost", true).unwrap_err().code(), "not_found");
+        assert_eq!(
+            run_toggle_impl(&state, "plain", true).unwrap_err().code(),
+            "invalid"
+        );
+        assert_eq!(
+            run_toggle_impl(&state, "ghost", true).unwrap_err().code(),
+            "not_found"
+        );
     }
 
     #[test]

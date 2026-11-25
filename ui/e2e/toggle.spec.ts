@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 test('shows the off look and makes no call', async ({ page }) => {
   await expect(tile(page, 'mic')).toContainText('Muted')
   await expect(tile(page, 'mic')).toHaveAttribute('aria-pressed', 'false')
-  expect(await bg(page, 'mic')).toBe('rgb(45, 74, 124)')
+  await expect.poll(() => bg(page, 'mic')).toBe('rgb(45, 74, 124)')
   expect(await runCalls(page)).toHaveLength(0)
 })
 
@@ -31,7 +31,7 @@ test('tap runs the on switch once and shows the on look; tap again switches off'
   await tile(page, 'mic').click()
   await expect(tile(page, 'mic')).toContainText('Live')
   await expect(tile(page, 'mic')).toHaveAttribute('aria-pressed', 'true')
-  expect(await bg(page, 'mic')).toBe('rgb(124, 45, 45)')
+  await expect.poll(() => bg(page, 'mic')).toBe('rgb(124, 45, 45)')
   expect(await runCalls(page)).toEqual([{ widgetId: 'mic', toggle: 'on' }])
   await tile(page, 'mic').click()
   await expect(tile(page, 'mic')).toContainText('Muted')
@@ -45,7 +45,7 @@ test('a toggle without looks keeps the widget label and the default colour', asy
   await tile(page, 'lamp').click()
   await expect(tile(page, 'lamp')).toContainText('Lamp')
   await expect(tile(page, 'lamp')).toHaveAttribute('aria-pressed', 'true')
-  expect(await bg(page, 'lamp')).toBe('rgb(35, 37, 43)')
+  await expect.poll(() => bg(page, 'lamp')).toBe('rgb(35, 37, 43)')
 })
 
 test('a reload keeps the state', async ({ page }) => {
