@@ -1,0 +1,20 @@
+---
+source: crates/easydeck-core/tests/deck_diff.rs
+expression: "lines.join(\"\\n\")"
+---
+## rename
+Changed name: deck renamed from "Fixture deck" to "Other"
+## remove_page
+Removed pages/game: removed page "Game" with 5 widget(s)
+## remove_source
+Removed sources/games: removed game watch source "games"
+## page_title
+Changed pages/home: page "Start" changed: title
+## remove_widget
+Removed pages/home/widgets/c: removed launch tile "c"
+## label
+Changed pages/home/widgets/a: changed text tile "Time": label
+## http_url
+Changed! sources/api: source "api" changed: url
+## reorder_pages
+Changed pages: page order changed

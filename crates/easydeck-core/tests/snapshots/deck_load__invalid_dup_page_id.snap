@@ -1,0 +1,12 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/1/id",
+    "rule": "duplicate-id",
+    "message": "duplicate page id \"home\"",
+    "fix": "give each page its own id"
+  }
+]

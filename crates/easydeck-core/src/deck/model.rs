@@ -167,7 +167,8 @@ pub struct Widget {
     #[schemars(length(max = 60))]
     #[ts(optional)]
     pub label: Option<String>,
-    /// Icon: a path inside the pack (`icons/...`) or an https URL.
+    /// Icon: a path inside the pack (`icons/...`), plain glyph text, or an https URL. A remote
+    /// icon is a network endpoint: a risk item that needs approval (SPEC §4.3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub icon: Option<String>,
@@ -191,7 +192,8 @@ pub struct ToggleLook {
     #[schemars(length(max = 60))]
     #[ts(optional)]
     pub label: Option<String>,
-    /// Icon in this state: a path inside the pack (`icons/...`) or an https URL.
+    /// Icon in this state: a path inside the pack (`icons/...`), plain glyph text, or an https
+    /// URL. A remote icon is a network endpoint: a risk item that needs approval (SPEC §4.3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub icon: Option<String>,

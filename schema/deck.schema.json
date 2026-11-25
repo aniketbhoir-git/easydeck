@@ -428,7 +428,7 @@
           "type": "string"
         },
         "icon": {
-          "description": "Icon in this state: a path inside the pack (`icons/...`) or an https URL.",
+          "description": "Icon in this state: a path inside the pack (`icons/...`), plain glyph text, or an https\nURL. A remote icon is a network endpoint: a risk item that needs approval (SPEC §4.3).",
           "type": "string"
         },
         "label": {
@@ -775,7 +775,7 @@
       ],
       "properties": {
         "icon": {
-          "description": "Icon: a path inside the pack (`icons/...`) or an https URL.",
+          "description": "Icon: a path inside the pack (`icons/...`), plain glyph text, or an https URL. A remote\nicon is a network endpoint: a risk item that needs approval (SPEC §4.3).",
           "type": "string"
         },
         "id": {
