@@ -1,9 +1,12 @@
 <script lang="ts">
   import type { Deck } from '../lib/api'
   import { runAction } from '../lib/api'
+  import { setContext } from 'svelte'
   import Page from './Page.svelte'
 
   let { deck }: { deck: Deck } = $props()
+
+  setContext('deckName', deck.name)
 
   let selected = $state<string | null>(null)
   const current = $derived(

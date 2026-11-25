@@ -307,7 +307,10 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
             errors.push(ValidationError::new(
                 base,
                 "counter-step",
-                format!("counter \"{}\" has step 0, so a tap changes nothing", widget.id),
+                format!(
+                    "counter \"{}\" has step 0, so a tap changes nothing",
+                    widget.id
+                ),
                 "set step to a non-zero whole number, or remove it to use 1",
             ));
         }
