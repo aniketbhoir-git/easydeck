@@ -52,6 +52,7 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Screenshot compare is strict (`maxDiffPixels: 0`) | CI pins the Playwright container | Loosen to `maxDiffPixels: 20` if it flakes |
 | 2026-11-25 | Text widget: `format` removed; `hour12`, `seconds`, `showDate` added (G-1) | An unused field misleads LLM deck writers | Add `format` back with a parser |
 | 2026-11-25 | Gadget build order follows the research list (clock, counter, timer, gauge, volume, media, toggle look, long press) | The research ranks these as basic and low risk | Reorder the issues |
+| 2026-11-25 | Media tile (R2-3): poll every 1000 ms and emit `media` only on change; the thumbnail is read once per track change, capped at 256 KB, and sent inside the event as a `data:image` URL; base64 is a small std-only encoder in core | Same pattern as volume; the SPEC §2 list has no base64 crate | Switch to the session manager's change events, or add a base64 crate after asking |
 
 ## Test queue for the owner
 
