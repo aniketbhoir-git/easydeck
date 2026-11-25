@@ -3,11 +3,12 @@
 //! Arguments are parsed with `std::env::args`; the crate adds no dependency (A-3).
 
 use easydeck_core::contract;
-use easydeck_core::deck::DeckStore;
+use easydeck_core::deck::{ChangeKind, DeckStore};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-const USAGE: &str = "usage:\n  easydeck-cli gen [--check]\n  easydeck-cli validate <file>...";
+const USAGE: &str = "usage:\n  easydeck-cli gen [--check]\n  easydeck-cli validate <file>...
+  easydeck-cli diff <old> <new>";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -18,6 +19,7 @@ fn main() -> ExitCode {
             _ => usage(),
         },
         Some("validate") if args.len() > 1 => validate(&args[1..]),
+        Some("diff") if args.len() == 3 => diff(&args[1], &args[2]),
         _ => usage(),
     }
 }
@@ -118,4 +120,36 @@ fn validate(files: &[String]) -> ExitCode {
     } else {
         ExitCode::SUCCESS
     }
+}
+
+/// Print one line per difference: `<sign> <path>: <summary>`. Signs: `+` added, `-` removed,
+/// `~` changed, `>` moved; a `!` after the sign marks an entry that runs something.
+fn diff(old: &str, new: &str) -> ExitCode {
+    let load = |file: &str| match DeckStore::load(file) {
+        Ok(deck) => Some(deck),
+        Err(errors) => {
+            for e in errors {
+                eprintln!("{file}: {}: {}: {}", e.path, e.rule, e.message);
+            }
+            None
+        }
+    };
+    let (Some(a), Some(b)) = (load(old), load(new)) else {
+        return ExitCode::FAILURE;
+    };
+    let d = DeckStore::diff(&a, &b);
+    if d.is_empty() {
+        println!("no differences");
+    }
+    for e in &d.entries {
+        let sign = match e.kind {
+            ChangeKind::Added => '+',
+            ChangeKind::Removed => '-',
+            ChangeKind::Changed => '~',
+            ChangeKind::Moved => '>',
+        };
+        let run = if e.runs { "!" } else { "" };
+        println!("{sign}{run} {}: {}", e.path, e.summary);
+    }
+    ExitCode::SUCCESS
 }
