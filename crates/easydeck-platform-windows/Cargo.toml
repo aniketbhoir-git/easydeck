@@ -9,4 +9,4 @@ license = "MIT"
 easydeck-core = { path = "../easydeck-core" }
 
 [target.'cfg(windows)'.dependencies]
-sysinfo = { workspace = true }
+windows = { workspace = true }
