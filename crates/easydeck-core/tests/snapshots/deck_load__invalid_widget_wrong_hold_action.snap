@@ -1,0 +1,13 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+assertion_line: 151
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/2",
+    "rule": "widget-action",
+    "message": "widget \"c\" is a launch widget but its holdAction is not a launch action",
+    "fix": "set holdAction.type to \"launch\""
+  }
+]

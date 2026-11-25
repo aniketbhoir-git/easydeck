@@ -92,6 +92,12 @@
               "1"
             ]
           },
+          "holdAction": {
+            "type": "key_macro",
+            "keys": [
+              "2"
+            ]
+          },
           "position": {
             "x": 0,
             "y": 0

@@ -59,6 +59,11 @@ const INVALID: &[(&str, &str, &str)] = &[
         "not a launch action",
     ),
     (
+        "invalid_widget_wrong_hold_action.deck.json",
+        "/pages/0/widgets/2",
+        "its holdAction is not a launch action",
+    ),
+    (
         "invalid_launch_missing_appid.deck.json",
         "/pages/0/widgets/2",
         "",

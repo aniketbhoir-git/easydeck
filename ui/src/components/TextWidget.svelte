@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
   import type { Widget } from '../lib/api'
   import { formatClock, msToNextSecond } from '../lib/clock'
 
@@ -13,7 +12,7 @@
     formatClock(now, { hour12: widget.hour12, seconds: widget.seconds ?? false }),
   )
 
-  onMount(() => {
+  $effect(() => {
     if (kind === 'label') return
     let timer: ReturnType<typeof setTimeout>
     const tick = () => {

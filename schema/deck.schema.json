@@ -456,6 +456,10 @@
               "$ref": "#/$defs/Action",
               "description": "The launch action to run on tap."
             },
+            "holdAction": {
+              "$ref": "#/$defs/Action",
+              "description": "Optional second action that runs on a long press (held at least 600 ms without\nmoving). It must be a `launch` action, like `action`. It is a risk item like\n`action`: it runs only after the user approves it. A long press never also runs\n`action`."
+            },
             "order": {
               "$ref": "#/$defs/Order",
               "description": "`fixed` keeps deck order. `recent` sorts by local play history at render time.\nDefaults to `fixed`."
@@ -477,6 +481,10 @@
             "action": {
               "$ref": "#/$defs/Action",
               "description": "The key macro to run on tap."
+            },
+            "holdAction": {
+              "$ref": "#/$defs/Action",
+              "description": "Optional second action that runs on a long press (held at least 600 ms without\nmoving). It must be a `key_macro` action, like `action`. It is a risk item like\n`action`: it runs only after the user approves it. A long press never also runs\n`action`."
             },
             "type": {
               "const": "macro",
