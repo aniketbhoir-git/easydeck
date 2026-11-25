@@ -89,6 +89,6 @@ A-5 (#34, runs after milestone M1).
    PC has an NVIDIA GPU, check that the GPU value shows. No console window may flash.
 6. **R2-2 gauge.** Open `docs/screenshots/R2-2-gauge-1920x480.png` and
    `docs/screenshots/R2-2-gauge-1024x600.png`. Say if the gauge look is acceptable.
-7. **G-2 counter and G-3 timer.** Run `npm run dev` from `ui/` and open
+7. **G-2 counter and G-3 timer.** Run `npx vite --mode e2e` from `ui/` (mock deck, no app) and open
    `http://localhost:1420/?deck=counter` and `?deck=timer` in a browser. Tap, long press,
    and check the end pulse of the 5 s countdown.
