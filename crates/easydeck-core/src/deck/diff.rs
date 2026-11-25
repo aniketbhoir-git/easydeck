@@ -454,13 +454,29 @@ fn action_text(v: &Value) -> String {
     }
 }
 
-fn is_remote(url: &str) -> bool {
-    let u = url.trim_start().to_ascii_lowercase();
-    u.starts_with("http://") || u.starts_with("https://")
+/// True only when an icon value cannot name a network endpoint (SPEC 4.3). This is an
+/// allow-list: a browser or Windows fetches many forms (`//host/a.png`, `https:host/a.png`,
+/// `https:\\evil.host\a.png`, `\\host\share\a.png`, `file://host/a.png`, `ftp://...`, any case),
+/// so a deny-list on `http(s)://` is not safe. An icon is inert only if it is
+/// (a) a pack path: `icons/` plus `[A-Za-z0-9_./-]`, with no `..` segment, or
+/// (b) plain glyph text (an emoji or a short word) with none of `/ \ : . % @`.
+/// Every other value counts as a network endpoint. A validator rule for icon forms
+/// belongs to A-8.
+fn icon_is_inert(icon: &str) -> bool {
+    if let Some(rest) = icon.strip_prefix("icons/") {
+        return !rest.is_empty()
+            && rest
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '/' | '-'))
+            && !rest.split('/').any(|seg| seg == "..");
+    }
+    !icon
+        .chars()
+        .any(|c| matches!(c, '/' | '\\' | ':' | '.' | '%' | '@'))
 }
 
 /// What a widget runs or reaches: its launch, key macro and shell actions, its `embed` URL
-/// and any remote icon URL (a network endpoint, SPEC 4.3), as JSON. Page switches run
+/// and any icon that is not inert (a network endpoint, SPEC 4.3), as JSON. Page switches run
 /// nothing. A change here is a change to what runs.
 fn widget_payload(w: &Widget) -> Vec<Value> {
     let mut out = kind_payload(w);
@@ -471,7 +487,7 @@ fn widget_payload(w: &Widget) -> Vec<Value> {
     out.extend(
         icons
             .into_iter()
-            .filter(|u| is_remote(u))
+            .filter(|u| !icon_is_inert(u))
             .map(|u| serde_json::json!({ "icon": u })),
     );
     out

@@ -292,9 +292,45 @@ fn version_and_schema_changes_are_entries() {
     assert!(DeckStore::diff(&a, &b).is_empty());
 }
 
+const BAD_ICONS: &[&str] = &[
+    "//evil.host/a.png",
+    "https:evil.host/a.png",
+    r"https:\\evil.host\a.png",
+    r"\\host\share\a.png",
+    "file://host/a.png",
+    "ftp://evil.host/a.png",
+    "HTTPS://evil.host/a.png",
+    "icons/../x.png",
+    "icons/a b.png",
+    "x.png",
+    "a@b",
+];
+
+#[test]
+fn non_inert_icon_forms_run_and_glyphs_do_not() {
+    for bad in BAD_ICONS {
+        let mut n = base_json();
+        n["pages"][0]["widgets"][3]["icon"] = json!(bad);
+        let d = diff_of(n);
+        assert_eq!(d.entries.len(), 1, "{bad}");
+        assert!(d.entries[0].runs, "{bad}");
+    }
+    for ok in ["icons/a/b-c_1.png", "🎮", "play", "icons/x"] {
+        let mut n = base_json();
+        n["pages"][0]["widgets"][3]["icon"] = json!(ok);
+        let d = diff_of(n);
+        assert_eq!(d.entries.len(), 1, "{ok}");
+        assert!(!d.entries[0].runs, "{ok}");
+    }
+}
+
 /// One edit to a risky field of `base_json`, chosen by index and a seed.
 fn risky_edit(v: &mut Value, which: usize, seed: &str) {
     let url = format!("https://example.org/{seed}");
+    let icon = match seed.bytes().next().unwrap_or(0) as usize % (BAD_ICONS.len() + 1) {
+        0 => url.clone(),
+        n => BAD_ICONS[n - 1].to_string(),
+    };
     let cmd = format!("cmd-{seed}");
     match which {
         0 => v["pages"][0]["widgets"][0]["action"] = json!({"type":"shell","command":cmd}),
@@ -307,9 +343,9 @@ fn risky_edit(v: &mut Value, which: usize, seed: &str) {
                 s["url"] = json!(url);
             }
         }
-        6 => v["pages"][0]["widgets"][3]["icon"] = json!(url),
-        7 => v["pages"][0]["widgets"][1]["on"]["icon"] = json!(url),
-        8 => v["pages"][0]["widgets"][1]["off"]["icon"] = json!(url),
+        6 => v["pages"][0]["widgets"][3]["icon"] = json!(icon),
+        7 => v["pages"][0]["widgets"][1]["on"]["icon"] = json!(icon),
+        8 => v["pages"][0]["widgets"][1]["off"]["icon"] = json!(icon),
         // Type change: the text tile becomes a launch tile.
         9 => {
             v["pages"][0]["widgets"][3] = json!({"id":"note","type":"launch",
