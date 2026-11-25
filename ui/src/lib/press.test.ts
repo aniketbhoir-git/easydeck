@@ -75,6 +75,14 @@ describe('press detector', () => {
     expect(onHold).toHaveBeenCalledTimes(1)
     expect(onTap).toHaveBeenCalledTimes(1)
   })
+  it('without onHold, a long press is a tap', () => {
+    const tap = vi.fn()
+    const p = createPressDetector(() => ({ onTap: tap }))
+    p.down(ev())
+    vi.advanceTimersByTime(HOLD_MS * 2)
+    p.up(ev())
+    expect(tap).toHaveBeenCalledTimes(1)
+  })
   it('reports start and end of a press', () => {
     const onStart = vi.fn()
     const onEnd = vi.fn()

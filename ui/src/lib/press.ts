@@ -1,5 +1,6 @@
 // Shared tap / long-press detector. Framework-free; `press` below is the Svelte action.
 // Long press: held >= HOLD_MS and moved <= MOVE_PX. A long press never also fires the tap.
+// Without an onHold handler there is no long press: any press is a tap.
 // pointercancel, moving more than MOVE_PX, or a second pointer cancels both.
 
 export const HOLD_MS = 600
@@ -53,6 +54,8 @@ export function createPressDetector(
       startY = e.clientY
       held = false
       hooks.onStart?.()
+      // No hold handler: a long press stays a tap, so a slow touch is not lost.
+      if (!getHandlers().onHold) return
       timer = setTimeout(() => {
         timer = undefined
         held = true
