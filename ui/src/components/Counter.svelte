@@ -7,9 +7,14 @@
   type CounterData = Extract<Widget, { type: 'counter' }>
   let { widget }: { widget: CounterData } = $props()
 
-  const deckName = getContext<string | undefined>('deckName') ?? ''
-  const key = counterKey(deckName, widget.id)
-  let value = $state(parseStored(readState(key), widget))
+  const deckName = getContext<(() => string) | undefined>('deckName')
+  const key = $derived(counterKey(deckName?.() ?? '', widget.id))
+  let value = $state(0)
+  // Runs on mount, when the key changes (renamed deck) and when the widget changes (a new
+  // min or max): reload from storage and clamp.
+  $effect.pre(() => {
+    value = parseStored(readState(key), widget)
+  })
 
   function set(v: number) {
     value = v

@@ -159,6 +159,16 @@ const INVALID: &[(&str, &str, &str)] = &[
         "outside its min and max",
     ),
     (
+        "invalid_counter_minmax.deck.json",
+        "/pages/0/widgets/0",
+        "min above max",
+    ),
+    (
+        "invalid_counter_unsafe.deck.json",
+        "/pages/0/widgets/0",
+        "safe whole-number range",
+    ),
+    (
         "invalid_timer_duration.deck.json",
         "/pages/0/widgets/0",
         "outside 1 to 86400",
