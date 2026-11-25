@@ -7,7 +7,7 @@ use crate::error::AppError;
 use easydeck_core::audio::{poll_change, AudioEndpoint, AudioError, VolumeState};
 use easydeck_core::deck::{Deck, WidgetKind};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
@@ -16,14 +16,15 @@ const POLL_EVERY: Duration = Duration::from_millis(500);
 /// The audio endpoint, shared by the commands and the poller. Managed by Tauri.
 pub struct VolumeService {
     endpoint: Arc<dyn AudioEndpoint>,
-    stop: Arc<AtomicBool>,
+    /// The stop flag of the current poller; each `start_poller` installs a fresh one.
+    stop: Mutex<Arc<AtomicBool>>,
 }
 
 impl VolumeService {
     pub fn new(endpoint: Arc<dyn AudioEndpoint>) -> Self {
         Self {
             endpoint,
-            stop: Arc::new(AtomicBool::new(false)),
+            stop: Mutex::new(Arc::new(AtomicBool::new(false))),
         }
     }
 
@@ -51,8 +52,11 @@ impl VolumeService {
         if !has_volume {
             return;
         }
-        self.stop.store(false, Ordering::Relaxed);
-        let (endpoint, stop) = (self.endpoint.clone(), self.stop.clone());
+        let stop = Arc::new(AtomicBool::new(false));
+        // Stop any earlier poller, then give this one its own flag.
+        let old = std::mem::replace(&mut *self.stop.lock().unwrap(), stop.clone());
+        old.store(true, Ordering::Relaxed);
+        let endpoint = self.endpoint.clone();
         std::thread::spawn(move || {
             let mut last = None;
             while !stop.load(Ordering::Relaxed) {
@@ -69,7 +73,7 @@ impl VolumeService {
     }
 
     pub fn stop(&self) {
-        self.stop.store(true, Ordering::Relaxed);
+        self.stop.lock().unwrap().store(true, Ordering::Relaxed);
     }
 }
 

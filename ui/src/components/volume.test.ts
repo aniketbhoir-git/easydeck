@@ -89,6 +89,27 @@ describe('Volume', () => {
     expect(api.set).toHaveBeenCalledWith(45)
   })
 
+  it('resyncs from volume_get once the local-change window ends', async () => {
+    vi.useFakeTimers()
+    try {
+      api.get.mockResolvedValue({ level: 40, muted: false })
+      api.set.mockResolvedValue(undefined)
+      render(Volume, { widget })
+      await settle()
+      await fireEvent.keyDown(screen.getByTestId('volume-track'), { key: 'ArrowRight' })
+      // An outside change during the window is ignored, and the poller will not re-send it.
+      api.get.mockResolvedValue({ level: 80, muted: false })
+      api.handlers.forEach((h) => h({ level: 80, muted: false }))
+      await settle()
+      expect(screen.getByTestId('volume-level').textContent?.trim()).toBe('45%')
+      await vi.advanceTimersByTimeAsync(800)
+      await settle()
+      expect(screen.getByTestId('volume-level').textContent?.trim()).toBe('80%')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('stops listening on unmount', async () => {
     api.get.mockResolvedValue({ level: 40, muted: false })
     render(Volume, { widget })

@@ -7,6 +7,7 @@
     isVertical,
     levelFromPointer,
     onVolume,
+    STALE_EVENT_MS,
     volumeGet,
     volumeMute,
     volumeSet,
@@ -25,6 +26,24 @@
   let track: HTMLDivElement | undefined = $state()
 
   const local = createLocalChangeGuard()
+
+  // The poller emits only on change, so an outside change made while events were ignored
+  // (a drag, or the local-change window) is never re-sent. Read the real value once the
+  // window has ended, and again after a drag ends.
+  let resyncTimer: ReturnType<typeof setTimeout> | undefined
+  function scheduleResync() {
+    clearTimeout(resyncTimer)
+    resyncTimer = setTimeout(() => {
+      if (dragging) return
+      volumeGet()
+        .then((v) => {
+          if (dragging || local.fresh()) return
+          level = v.level
+          muted = v.muted
+        })
+        .catch(() => {})
+    }, STALE_EVENT_MS + 50)
+  }
 
   const sender = createLatestThrottle((v: number) => {
     volumeSet(v).catch(() => (level = null))
@@ -50,6 +69,7 @@
       .catch(() => {})
     return () => {
       stopped = true
+      clearTimeout(resyncTimer)
       unlisten?.()
       sender.cancel()
     }
@@ -63,6 +83,7 @@
       : levelFromPointer(e.clientX, r.left, r.width, false)
     level = v
     local.mark()
+    scheduleResync()
     sender.push(v)
   }
 
@@ -76,6 +97,7 @@
 
   function up() {
     dragging = false
+    scheduleResync()
   }
 
   function key(e: KeyboardEvent) {
@@ -96,6 +118,7 @@
     e.preventDefault()
     level = Math.min(100, Math.max(0, next))
     local.mark()
+    scheduleResync()
     sender.push(level)
   }
 
