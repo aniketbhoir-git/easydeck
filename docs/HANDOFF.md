@@ -10,11 +10,10 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 
 - Updated: 2026-11-25
 - `main`: A-2 (#41), A-7 (#51), A-3 (#50), A-4 (#52), G-1 (#53), A-9 (#55), G-6 (#57),
-  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62), G-4 (#63), G-5 (#64) merged.
-- Merged since the last update: #68 (follow-up #60), #70 (R5-1 deck diff), #71 (R4-1 editor),
-  #74 (R4-2 launch and macro forms).
+  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62), G-4 (#63), G-5 (#64), #67 (follow-up #56),
+  #68 (follow-up #60), R5-1 (#70), R4-1 (#71), R4-2 (#74) merged.
 - Open for the owner (`review:owner`, not self-merged): PR #65 (R2-3 media), PR #76 (A-8
-  approval ledger and risk gate).
+  approval ledger and risk gate, head 5ea2529).
 - Check command: `cargo xtask check` (Windows), `cargo xtask check --core` (Linux).
 
 ## Done (this run)
@@ -43,6 +42,15 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
   volume on failure; it now restores in a `Drop` guard.
 - G-5 (#64) merged: toggle look per state; `run_action { widgetId, toggle: 'on' | 'off' }`.
   The review made a plain tap or a hold on a toggle `Invalid`.
+- #67 merged: stronger layout property tests and resolve/mock parity (follow-up #56).
+- #68 merged: counter safe-integer range and deck-reload key (follow-up #60).
+- R5-1 (#70) merged: deck diff with risk marks. The review caught remote icon forms that were
+  not flagged; `icon_is_inert` is now an allow-list.
+- R4-1 (#71) merged: editor mode (hold 1.5 s), inspector, `validate_deck`.
+- R4-2 (#74) merged: launch and macro forms. The review caught a key listener that stayed on;
+  recording now stops on Esc, blur and selection change. Follow-up #75.
+- A-8 (#76) built and reviewed; open for the owner. The review caught a re-seed after a
+  corrupt ledger and an overwrite of an unreadable ledger; both fixed.
 - Gadget issues filed: G-1 #44, G-2 #45, G-3 #46, G-4 #47, G-5 #48, G-6 #49 (label `gadget`).
 
 ## Next
@@ -50,8 +58,8 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 1. R4-3. It depends on the A-8 merge (PR #76).
 2. R2-3 media on the system media session (#8; the old title said Spotify): PR #65 waits for
    the owner's review.
-3. Follow-ups: #69 vitest flake; #72 after R1-4; #75 key-name contract, before the Windows
-   key sender (R3-1).
+3. Follow-ups: #69 vitest flake; #72 after R1-4; #73 exe picker (owner decision, see
+   "Owner decisions waiting"); #75 key-name contract, before the Windows key sender (R3-1).
 
 Skipped: A-1 (#30, needs the owner at the touch monitor), A-6 (#35, waits for A-1),
 A-5 (#34, runs after milestone M1).
