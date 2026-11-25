@@ -158,6 +158,43 @@ export const timerDeck: Deck = {
   ],
 }
 
+// A deck with two toggles: `mic` has a look per state, `lamp` has only an onAction and no
+// looks. Open the UI with `?deck=toggle`. A separate fixture, so the starter deck and its
+// screenshot baselines stay unchanged.
+export const toggleDeck: Deck = {
+  version: 1,
+  name: 'Toggle deck',
+  sources: {},
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 4, rows: 2 },
+      widgets: [
+        {
+          id: 'mic',
+          type: 'toggle',
+          label: 'Mic',
+          icon: '🎤',
+          onAction: { type: 'key_macro', keys: ['ctrl+m'] },
+          offAction: { type: 'key_macro', keys: ['ctrl+m'] },
+          on: { label: 'Live', icon: '🔴', color: '#7c2d2d' },
+          off: { label: 'Muted', color: '#2d4a7c' },
+          position: { x: 0, y: 0 },
+        },
+        {
+          id: 'lamp',
+          type: 'toggle',
+          label: 'Lamp',
+          icon: '💡',
+          onAction: { type: 'key_macro', keys: ['f9'] },
+          position: { x: 1, y: 0 },
+        },
+      ],
+    },
+  ],
+}
+
 export function installMockIpc(): void {
   window.__ipcCalls = []
   window.__emitSource = (id, payload) => emit('source:' + id, payload)
@@ -168,9 +205,15 @@ export function installMockIpc(): void {
       if (which === 'no-positions') return noPositionsDeck
       if (which === 'counter') return counterDeck
       if (which === 'timer') return timerDeck
+      if (which === 'toggle') return toggleDeck
       return fixtureDeck
     }
-    if (cmd === 'run_action') return undefined
+    if (cmd === 'run_action') {
+      // Test hook: `?fail=<widgetId>` makes run_action reject for that widget.
+      const fail = new URLSearchParams(location.search).get('fail')
+      if (fail && (args as { widgetId?: string }).widgetId === fail) throw new Error('mock failure')
+      return undefined
+    }
     throw new Error(`unmocked command: ${cmd}`)
   }, { shouldMockEvents: true })
 }
