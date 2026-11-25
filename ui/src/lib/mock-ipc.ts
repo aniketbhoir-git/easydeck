@@ -128,6 +128,32 @@ export const counterDeck: Deck = {
   ],
 }
 
+// A deck with a 5 s countdown and a stopwatch. Open the UI with `?deck=timer`. A separate
+// fixture, so the starter deck and its screenshot baselines stay unchanged.
+export const timerDeck: Deck = {
+  version: 1,
+  name: 'Timer deck',
+  sources: {},
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 4, rows: 2 },
+      widgets: [
+        {
+          id: 'brew',
+          type: 'timer',
+          label: 'Brew',
+          mode: 'countdown',
+          durationS: 5,
+          position: { x: 0, y: 0 },
+        },
+        { id: 'lap', type: 'timer', label: 'Lap', mode: 'stopwatch', position: { x: 1, y: 0 } },
+      ],
+    },
+  ],
+}
+
 export function installMockIpc(): void {
   window.__ipcCalls = []
   mockIPC((cmd, args) => {
@@ -136,6 +162,7 @@ export function installMockIpc(): void {
       const which = new URLSearchParams(location.search).get('deck')
       if (which === 'no-positions') return noPositionsDeck
       if (which === 'counter') return counterDeck
+      if (which === 'timer') return timerDeck
       return fixtureDeck
     }
     if (cmd === 'run_action') return undefined
