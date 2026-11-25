@@ -3,7 +3,7 @@
 use crate::error::AppError;
 use easydeck_core::deck::{
     is_hash, review, risk_items, source_hash, Action, ApprovalLedger, Deck, DeckStore, LedgerFile,
-    LedgerStatus, RiskReview, Source,
+    LedgerLoad, LedgerStatus, RiskItem, RiskReview, Source,
 };
 use std::path::Path;
 use std::sync::{Mutex, MutexGuard};
@@ -20,6 +20,53 @@ pub struct AppState {
     file: Option<LedgerFile>,
     /// One message for the user, shown by the next risk review (for example a corrupt ledger).
     notice: Mutex<Option<String>>,
+}
+
+/// What to do with a loaded ledger at start: the ledger to use, the file to keep saving to
+/// (`None` when the file must not be written this session) and a notice for the user.
+fn settle(
+    loaded: LedgerLoad,
+    file: LedgerFile,
+    starter: &[RiskItem],
+) -> (ApprovalLedger, Option<LedgerFile>, Option<String>) {
+    let mut ledger = loaded.ledger;
+    let mut notice = None;
+    let mut keep = true;
+    match loaded.status {
+        LedgerStatus::Loaded => {}
+        LedgerStatus::Missing => {
+            ledger.approve(starter);
+            if let Err(e) = file.save(&ledger) {
+                notice = Some(format!(
+                    "EasyDeck could not save its approvals ({e}). They last until the app closes."
+                ));
+            }
+        }
+        LedgerStatus::Corrupt { renamed, .. } => {
+            // Save an empty ledger over the renamed file, so the next start is not a first
+            // start and does not seed the starter items again.
+            let saved = renamed && file.save(&ledger).is_ok();
+            notice = Some(format!(
+                "The approvals file was damaged, so every action needs approval again. {}",
+                if renamed {
+                    "The old file is kept as approvals.json.corrupt."
+                } else {
+                    "The old file could not be renamed."
+                }
+            ));
+            if renamed && !saved {
+                keep = false;
+            }
+        }
+        LedgerStatus::Unreadable { reason } => {
+            // Never write over a file that could not be read: it may hold earlier approvals.
+            keep = false;
+            notice = Some(format!(
+                "The approvals file could not be read ({reason}), so every action needs approval again. Approvals will not be saved this session."
+            ));
+        }
+    }
+    (ledger, keep.then_some(file), notice)
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -81,37 +128,9 @@ impl AppState {
             return Ok(state);
         };
         let file = LedgerFile::in_dir(dir);
-        let loaded = file.load();
-        let mut ledger = loaded.ledger;
-        let mut notice = None;
-        match loaded.status {
-            LedgerStatus::Loaded => {}
-            LedgerStatus::Missing => {
-                ledger.approve(&starter);
-                if let Err(e) = file.save(&ledger) {
-                    notice = Some(format!(
-                        "EasyDeck could not save its approvals ({e}). They last until the app closes."
-                    ));
-                }
-            }
-            LedgerStatus::Corrupt { renamed, .. } => {
-                notice = Some(format!(
-                    "The approvals file was damaged, so every action needs approval again. {}",
-                    if renamed {
-                        "The old file is kept as approvals.json.corrupt."
-                    } else {
-                        "The old file could not be renamed."
-                    }
-                ));
-            }
-            LedgerStatus::Unreadable { reason } => {
-                notice = Some(format!(
-                    "The approvals file could not be read ({reason}), so every action needs approval again."
-                ));
-            }
-        }
+        let (ledger, file, notice) = settle(file.load(), file, &starter);
         state.ledger = Mutex::new(ledger);
-        state.file = Some(file);
+        state.file = file;
         state.notice = Mutex::new(notice);
         Ok(state)
     }
@@ -323,5 +342,78 @@ mod tests {
     fn bad_json_is_invalid_error() {
         let err = AppState::from_json("{").err().unwrap();
         assert_eq!(err.code(), "invalid");
+    }
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("easydeck-state-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn starter_hashes() -> Vec<String> {
+        let state = AppState::from_json(BUNDLED_DECK).unwrap();
+        risk_items(state.deck())
+            .into_iter()
+            .map(|i| i.hash)
+            .collect()
+    }
+
+    fn approved_count(state: &AppState) -> usize {
+        lock(&state.ledger).len()
+    }
+
+    #[test]
+    fn missing_file_seeds_the_starter_items() {
+        let dir = temp_dir("missing");
+        let state = AppState::open(Some(&dir)).unwrap();
+        assert_eq!(approved_count(&state), starter_hashes().len());
+        assert!(dir.join("approvals.json").exists());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn corrupt_file_is_not_seeded_now_or_at_the_next_start() {
+        let dir = temp_dir("corrupt");
+        std::fs::write(dir.join("approvals.json"), "{ not json").unwrap();
+        let state = AppState::open(Some(&dir)).unwrap();
+        assert_eq!(approved_count(&state), 0);
+        assert!(dir.join("approvals.json.corrupt").exists());
+        let fresh = std::fs::read_to_string(dir.join("approvals.json")).unwrap();
+        assert!(ApprovalLedger::from_json(&fresh).unwrap().is_empty());
+        let second = AppState::open(Some(&dir)).unwrap();
+        assert_eq!(approved_count(&second), 0);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn unreadable_ledger_is_not_seeded_and_no_file_is_kept() {
+        let dir = temp_dir("unreadable");
+        let starter = risk_items(AppState::from_json(BUNDLED_DECK).unwrap().deck());
+        let loaded = LedgerLoad {
+            ledger: ApprovalLedger::new(),
+            status: LedgerStatus::Unreadable {
+                reason: "locked".into(),
+            },
+        };
+        let (ledger, kept, notice) = settle(loaded, LedgerFile::in_dir(&dir), &starter);
+        assert!(ledger.is_empty());
+        assert!(kept.is_none());
+        assert!(notice.unwrap().contains("will not be saved"));
+        assert!(!dir.join("approvals.json").exists());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn unreadable_file_survives_a_later_approve() {
+        // A directory named approvals.json cannot be read as a file, on every platform.
+        let dir = temp_dir("unreadable-dir");
+        std::fs::create_dir(dir.join("approvals.json")).unwrap();
+        let state = AppState::open(Some(&dir)).unwrap();
+        assert_eq!(approved_count(&state), 0);
+        state.approve(&starter_hashes()).unwrap();
+        assert!(dir.join("approvals.json").is_dir());
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

@@ -66,6 +66,9 @@ pub(crate) fn action_subject(a: &Action) -> Option<Value> {
 
 /// What a source reaches: only `http_poll` reaches the network. Interval and timeout are not
 /// part of the identity: the approval covers the endpoint.
+///
+/// Any request field later added to `http_poll` (method, headers, body) must go into this
+/// identity, or changing it would not need a new approval.
 pub(crate) fn source_risk(s: &Source) -> Option<Value> {
     match s {
         Source::HttpPoll { url, .. } => Some(endpoint("http_poll", url)),
