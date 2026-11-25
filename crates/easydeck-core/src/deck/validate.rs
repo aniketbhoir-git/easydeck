@@ -143,7 +143,16 @@ fn semantic_errors(deck: &Deck, raw: &Value) -> Vec<ValidationError> {
         }
     }
 
+    let mut seen_pages = HashSet::new();
     for (pi, page) in deck.pages.iter().enumerate() {
+        if !seen_pages.insert(page.id.as_str()) {
+            errors.push(ValidationError::new(
+                format!("/pages/{pi}/id"),
+                "duplicate-id",
+                format!("duplicate page id \"{}\"", page.id),
+                "give each page its own id",
+            ));
+        }
         if let Some(trigger) = &page.trigger {
             if !matches!(
                 deck.sources.get(&trigger.source),

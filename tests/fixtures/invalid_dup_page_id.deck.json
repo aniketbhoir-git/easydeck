@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "name": "Duplicate page ids",
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": {
+        "columns": 2,
+        "rows": 1
+      },
+      "widgets": [
+        {
+          "id": "a",
+          "type": "text",
+          "text": "A"
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "title": "Again",
+      "grid": {
+        "columns": 2,
+        "rows": 1
+      },
+      "widgets": [
+        {
+          "id": "b",
+          "type": "text",
+          "text": "B"
+        }
+      ]
+    }
+  ]
+}

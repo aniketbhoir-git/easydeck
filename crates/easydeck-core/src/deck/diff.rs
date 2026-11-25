@@ -1,8 +1,8 @@
 //! Deck diff (R5-1, SPEC §5, §6.3): what a new deck adds, removes or changes against an old
 //! one. There is no `apply`: an approved deck replaces the old one.
 //!
-//! Widgets and pages match by id, sources by key. A widget gives at most one entry, so a
-//! widget that moved and changed its label is one `Changed` entry. Each entry has a path, a
+//! Pages match by id, sources by key, widgets by id across the whole deck (see `Matcher`). A widget gives at most one entry, so a
+//! widget that moved (even to another page) and changed its label is one `Changed` entry. Each entry has a path, a
 //! short summary and `runs`, which tells the risk review (A-8) that the entry adds or changes
 //! something that runs a program or reaches the network.
 
@@ -18,7 +18,7 @@ pub enum ChangeKind {
     Added,
     Removed,
     Changed,
-    /// Only the position of a widget changed.
+    /// Only the position or the page of a widget changed.
     Moved,
 }
 
@@ -42,7 +42,7 @@ pub struct DiffEntry {
     /// One short human sentence.
     pub summary: String,
     /// True when the new side adds or changes a launch, key macro, shell action, an
-    /// `http_poll` URL or an `embed` URL. Always false for `Removed` and `Moved`.
+    /// `http_poll` URL, an `embed` URL or a remote icon URL. Always false for `Removed` and `Moved`.
     pub runs: bool,
 }
 
@@ -82,6 +82,24 @@ pub fn diff(old: &Deck, new: &Deck) -> DeckDiff {
             format!("deck renamed from \"{}\" to \"{}\"", old.name, new.name),
             false,
         ));
+    }
+    for (key, o, n) in [
+        ("version", old.version.to_string(), new.version.to_string()),
+        (
+            "$schema",
+            old.schema.clone().unwrap_or_default(),
+            new.schema.clone().unwrap_or_default(),
+        ),
+    ] {
+        if o != n {
+            out.push(entry(
+                ChangeKind::Changed,
+                DiffScope::Deck,
+                key,
+                format!("{key} changed from \"{o}\" to \"{n}\""),
+                false,
+            ));
+        }
     }
     let (so, sn) = (to_value(&old.settings), to_value(&new.settings));
     let keys = changed_keys(&so, &sn, &[]);
@@ -190,23 +208,55 @@ fn diff_sources(old: &Deck, new: &Deck, out: &mut Vec<DiffEntry>) {
 // ---- pages and widgets ----
 
 fn diff_pages(old: &Deck, new: &Deck, out: &mut Vec<DiffEntry>) {
+    let matcher = Matcher::new(old, new);
     for np in &new.pages {
         let path = format!("pages/{}", np.id);
-        match old.pages.iter().find(|p| p.id == np.id) {
+        let old_page = old.pages.iter().find(|p| p.id == np.id);
+        match old_page {
             None => out.push(entry(
                 ChangeKind::Added,
                 DiffScope::Page,
-                path,
+                path.clone(),
                 format!(
                     "added page \"{}\" with {} widget(s)",
                     np.title,
                     np.widgets.len()
                 ),
-                np.widgets.iter().any(|w| !widget_payload(w).is_empty()),
+                // The widget entries below carry `runs`.
+                false,
             )),
-            Some(op) => {
-                diff_page_fields(op, np, &path, out);
-                diff_widgets(op, np, &path, out);
+            Some(op) => diff_page_fields(op, np, &path, out),
+        }
+        for nw in &np.widgets {
+            let wpath = format!("{path}/widgets/{}", nw.id);
+            match matcher.old_of(&np.id, &nw.id) {
+                None => out.push(entry(
+                    ChangeKind::Added,
+                    DiffScope::Widget,
+                    wpath,
+                    format!("added {} tile \"{}\"", type_name(nw), name_of(nw)),
+                    !widget_payload(nw).is_empty(),
+                )),
+                Some((opage, ow)) => {
+                    if ow != nw || opage != np.id {
+                        out.push(widget_change(opage, ow, &np.id, nw, wpath));
+                    }
+                }
+            }
+        }
+        // Tiles of a page both decks hold that no tile of the new deck continues. Tiles of
+        // a removed page are covered by the page entry.
+        if let Some(op) = old_page {
+            for ow in &op.widgets {
+                if !matcher.continues(&op.id, &ow.id) {
+                    out.push(entry(
+                        ChangeKind::Removed,
+                        DiffScope::Widget,
+                        format!("{path}/widgets/{}", ow.id),
+                        format!("removed {} tile \"{}\"", type_name(ow), name_of(ow)),
+                        false,
+                    ));
+                }
             }
         }
     }
@@ -244,6 +294,62 @@ fn diff_pages(old: &Deck, new: &Deck, out: &mut Vec<DiffEntry>) {
     }
 }
 
+/// Pairs the widgets of two decks. A widget id that appears once in each deck matches across
+/// pages, so a tile moved to another page is one entry. Validation only requires ids to be
+/// unique on a page; an id that repeats across pages matches within its page only.
+struct Matcher<'a> {
+    old: &'a Deck,
+    new: &'a Deck,
+    global: BTreeSet<&'a str>,
+}
+
+impl<'a> Matcher<'a> {
+    fn new(old: &'a Deck, new: &'a Deck) -> Self {
+        let count = |d: &Deck, id: &str| {
+            d.pages
+                .iter()
+                .flat_map(|p| &p.widgets)
+                .filter(|w| w.id == id)
+                .count()
+        };
+        let global = new
+            .pages
+            .iter()
+            .flat_map(|p| &p.widgets)
+            .map(|w| w.id.as_str())
+            .filter(|id| count(old, id) == 1 && count(new, id) == 1)
+            .collect();
+        Matcher { old, new, global }
+    }
+
+    /// The old widget (and its page id) that the new widget `id` on `page` continues.
+    fn old_of(&self, page: &str, id: &str) -> Option<(&'a str, &'a Widget)> {
+        if self.global.contains(id) {
+            self.old.pages.iter().find_map(|p| {
+                p.widgets
+                    .iter()
+                    .find(|w| w.id == id)
+                    .map(|w| (p.id.as_str(), w))
+            })
+        } else {
+            let p = self.old.pages.iter().find(|p| p.id == page)?;
+            let w = p.widgets.iter().find(|w| w.id == id)?;
+            Some((p.id.as_str(), w))
+        }
+    }
+
+    /// Whether the new deck holds a widget that continues old widget `id` of `page`.
+    fn continues(&self, page: &str, id: &str) -> bool {
+        self.global.contains(id)
+            || self
+                .new
+                .pages
+                .iter()
+                .find(|p| p.id == page)
+                .is_some_and(|p| p.widgets.iter().any(|w| w.id == id))
+    }
+}
+
 fn diff_page_fields(op: &Page, np: &Page, path: &str, out: &mut Vec<DiffEntry>) {
     let keys = changed_keys(&to_value(op), &to_value(np), &["widgets"]);
     if !keys.is_empty() {
@@ -265,57 +371,40 @@ fn name_of(w: &Widget) -> String {
     w.label.clone().unwrap_or_else(|| w.id.clone())
 }
 
-fn diff_widgets(op: &Page, np: &Page, page_path: &str, out: &mut Vec<DiffEntry>) {
-    for nw in &np.widgets {
-        let path = format!("{page_path}/widgets/{}", nw.id);
-        match op.widgets.iter().find(|w| w.id == nw.id) {
-            None => out.push(entry(
-                ChangeKind::Added,
-                DiffScope::Widget,
-                path,
-                format!("added {} tile \"{}\"", type_name(nw), name_of(nw)),
-                !widget_payload(nw).is_empty(),
-            )),
-            Some(ow) if ow != nw => out.push(widget_change(ow, nw, path)),
-            Some(_) => {}
-        }
-    }
-    for ow in &op.widgets {
-        if !np.widgets.iter().any(|w| w.id == ow.id) {
-            out.push(entry(
-                ChangeKind::Removed,
-                DiffScope::Widget,
-                format!("{page_path}/widgets/{}", ow.id),
-                format!("removed {} tile \"{}\"", type_name(ow), name_of(ow)),
-                false,
-            ));
-        }
-    }
-}
-
-fn widget_change(ow: &Widget, nw: &Widget, path: String) -> DiffEntry {
+fn widget_change(opage: &str, ow: &Widget, npage: &str, nw: &Widget, path: String) -> DiffEntry {
     let (vo, vn) = (to_value(ow), to_value(nw));
     let keys = changed_keys(&vo, &vn, &[]);
     let name = name_of(nw);
-    if keys == ["position"] {
+    let page_moved = opage != npage;
+    let from_page = if page_moved {
+        format!("page \"{opage}\" ")
+    } else {
+        String::new()
+    };
+    if keys.is_empty() || keys == ["position"] {
         return entry(
             ChangeKind::Moved,
             DiffScope::Widget,
             path,
-            format!("moved tile \"{name}\" from {} to {}", pos(ow), pos(nw)),
+            format!(
+                "moved tile \"{name}\" from {from_page}{} to {}",
+                pos(ow),
+                pos(nw)
+            ),
             false,
         );
     }
-    let parts: Vec<String> = keys
-        .iter()
-        .map(|k| match k.as_str() {
-            "position" => format!("moved {} -> {}", pos(ow), pos(nw)),
-            "action" | "holdAction" | "onAction" | "offAction" => {
-                format!("{k}: {} -> {}", action_text(&vo[k]), action_text(&vn[k]))
-            }
-            other => other.to_string(),
-        })
-        .collect();
+    let mut parts: Vec<String> = Vec::new();
+    if page_moved {
+        parts.push(format!("moved from page \"{opage}\" to page \"{npage}\""));
+    }
+    parts.extend(keys.iter().map(|k| match k.as_str() {
+        "position" => format!("moved {} -> {}", pos(ow), pos(nw)),
+        "action" | "holdAction" | "onAction" | "offAction" => {
+            format!("{k}: {} -> {}", action_text(&vo[k]), action_text(&vn[k]))
+        }
+        other => other.to_string(),
+    }));
     let runs = !widget_payload(nw).is_empty() && widget_payload(ow) != widget_payload(nw);
     entry(
         ChangeKind::Changed,
@@ -365,9 +454,30 @@ fn action_text(v: &Value) -> String {
     }
 }
 
-/// What a widget runs or reaches: its launch, key macro and shell actions and its `embed`
-/// URL, as JSON. Page switches run nothing. A change here is a change to what runs.
+fn is_remote(url: &str) -> bool {
+    let u = url.trim_start().to_ascii_lowercase();
+    u.starts_with("http://") || u.starts_with("https://")
+}
+
+/// What a widget runs or reaches: its launch, key macro and shell actions, its `embed` URL
+/// and any remote icon URL (a network endpoint, SPEC 4.3), as JSON. Page switches run
+/// nothing. A change here is a change to what runs.
 fn widget_payload(w: &Widget) -> Vec<Value> {
+    let mut out = kind_payload(w);
+    let mut icons: Vec<&String> = w.icon.iter().collect();
+    if let WidgetKind::Toggle { on, off, .. } = &w.kind {
+        icons.extend(on.iter().chain(off.iter()).filter_map(|l| l.icon.as_ref()));
+    }
+    out.extend(
+        icons
+            .into_iter()
+            .filter(|u| is_remote(u))
+            .map(|u| serde_json::json!({ "icon": u })),
+    );
+    out
+}
+
+fn kind_payload(w: &Widget) -> Vec<Value> {
     let acts: Vec<Option<&Action>> = match &w.kind {
         WidgetKind::Launch {
             action,
