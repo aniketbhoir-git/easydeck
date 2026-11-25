@@ -94,7 +94,7 @@ const INVALID: &[(&str, &str, &str)] = &[
     ),
     (
         "invalid_launch_missing_appid.deck.json",
-        "/pages/0/widgets/2",
+        "/pages/0/widgets/2/action/appId",
         "",
     ),
     ("invalid_empty_pages.deck.json", "/pages", ""),
@@ -253,9 +253,11 @@ fn launch_kinds_need_their_field() {
             serde_json::json!({"type": "launch", "kind": kind});
         let errors = DeckStore::validate(&deck);
         assert!(
-            errors.iter().any(|e| e.path == "/pages/0/widgets/2"
-                && e.rule == "launch-required-field"
-                && e.message.contains(field)),
+            errors
+                .iter()
+                .any(|e| e.path == format!("/pages/0/widgets/2/action/{field}")
+                    && e.rule == "launch-required-field"
+                    && e.message.contains(field)),
             "{kind}: {errors:#?}"
         );
     }

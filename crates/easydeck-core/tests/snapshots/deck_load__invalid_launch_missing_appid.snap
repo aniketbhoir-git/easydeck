@@ -4,7 +4,7 @@ expression: errors
 ---
 [
   {
-    "path": "/pages/0/widgets/2",
+    "path": "/pages/0/widgets/2/action/appId",
     "rule": "launch-required-field",
     "message": "widget \"c\": a launch action of kind steam needs the field \"appId\"",
     "fix": "add \"appId\" to the launch action"

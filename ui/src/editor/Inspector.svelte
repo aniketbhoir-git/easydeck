@@ -1,20 +1,37 @@
 <script lang="ts">
+  import type { Action } from '../lib/api'
   import type { Draft } from './draft.svelte'
+  import WidgetForm from './forms/WidgetForm.svelte'
+  import { shownByForm } from './forms/actions'
 
-  // The selected tile's details and the validation problems. It shows facts only: the forms
-  // that change a tile (R4-2) and move, resize and delete (R4-3) are not built yet.
+  // The selected tile's details, its form (R4-2) and the validation problems. Move, resize
+  // and delete (R4-3) are not built yet.
   let { draft }: { draft: Draft } = $props()
 
   const selected = $derived(draft.selected)
   const prefix = $derived(
     selected ? `/pages/${selected.pageIndex}/widgets/${selected.widgetIndex}` : null,
   )
+  const slotActions = (w: object): Record<string, Action | undefined> => {
+    const r = w as Record<string, Action | undefined>
+    return { action: r.action, holdAction: r.holdAction, onAction: r.onAction, offAction: r.offAction }
+  }
+  // The tile's problems that no form field shows (a field error is not listed twice).
   const own = $derived(
+    prefix === null || !selected
+      ? []
+      : draft.errors.filter(
+          (e) =>
+            (e.path === prefix || e.path.startsWith(prefix + '/')) &&
+            !shownByForm(e, prefix, slotActions(selected.widget)),
+        ),
+  )
+  const shown = $derived(
     prefix === null
       ? []
       : draft.errors.filter((e) => e.path === prefix || e.path.startsWith(prefix + '/')),
   )
-  const others = $derived(draft.errors.filter((e) => !own.includes(e)))
+  const others = $derived(draft.errors.filter((e) => !shown.includes(e)))
 </script>
 
 <section class="inspector" aria-label="Inspector">
@@ -32,6 +49,7 @@
         <dd>column {w.position.x + 1}, row {w.position.y + 1}</dd>
       {/if}
     </dl>
+    {#if prefix}{#key w.id}<WidgetForm {draft} widget={w} {prefix} />{/key}{/if}
     {#if own.length}
       <ul class="errors" data-testid="inspector-errors">
         {#each own as e, i (i)}
