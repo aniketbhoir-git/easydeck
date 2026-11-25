@@ -98,58 +98,92 @@ export function parseKeys(text: string): string[] {
   return text.split(/[\s,]+/).filter((k) => k !== '')
 }
 
-const MODIFIER_KEYS = new Set(['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'])
-const KEY_NAMES: Record<string, string> = {
-  ' ': 'space',
+// Recorded key names come from the physical key (`KeyboardEvent.code`), never from `e.key`,
+// which depends on the layout and on Shift ("Shift+1" gives "!"). The model takes free-text
+// names (`"1"`, `"ctrl+q"`, see `KeyMacro.keys`); this is the lower-case set the forms write:
+// a-z, 0-9, f1-f24, named keys, and the punctuation keys. A comma is left out, because the
+// typed text splits on it. Modifiers join with `+`, in the order ctrl, alt, shift, win.
+const KEY_BY_CODE: Record<string, string> = {
+  Space: 'space',
+  Enter: 'enter',
+  Tab: 'tab',
+  Backspace: 'backspace',
+  Delete: 'delete',
+  Insert: 'insert',
+  Home: 'home',
+  End: 'end',
+  PageUp: 'pageup',
+  PageDown: 'pagedown',
   ArrowUp: 'up',
   ArrowDown: 'down',
   ArrowLeft: 'left',
   ArrowRight: 'right',
-  Escape: 'esc',
+  Minus: '-',
+  Equal: '=',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Semicolon: ';',
+  Quote: "'",
+  Backquote: '`',
+  Backslash: '\\',
+  Period: '.',
+  Slash: '/',
 }
+for (let i = 0; i < 26; i++) KEY_BY_CODE[`Key${String.fromCharCode(65 + i)}`] = String.fromCharCode(97 + i)
+for (let i = 0; i < 10; i++) KEY_BY_CODE[`Digit${i}`] = String(i)
+for (let i = 1; i <= 24; i++) KEY_BY_CODE[`F${i}`] = `f${i}`
 
-/** The key name a recorded key press gives, for example "ctrl+q", or null for a bare
- *  modifier press (the next key completes the combination). */
+/** The key name a recorded key press gives, for example "ctrl+q" or "shift+=". It is null for a
+ *  bare modifier press and for any key outside the allow-list (Escape, Dead, Unidentified,
+ *  the numpad, media keys): nothing is recorded for those. */
 export function keyFromEvent(e: {
-  key: string
+  code: string
   ctrlKey: boolean
   shiftKey: boolean
   altKey: boolean
   metaKey: boolean
 }): string | null {
-  if (MODIFIER_KEYS.has(e.key)) return null
-  const name = KEY_NAMES[e.key] ?? e.key.toLowerCase()
+  const name = Object.hasOwn(KEY_BY_CODE, e.code) ? KEY_BY_CODE[e.code] : undefined
+  if (name === undefined) return null
   const mods = [e.ctrlKey && 'ctrl', e.altKey && 'alt', e.shiftKey && 'shift', e.metaKey && 'win']
   return [...mods.filter(Boolean), name].join('+')
 }
 
 /** Errors for one action, by field. `actionPath` is the JSON pointer of the action, for
- *  example `/pages/0/widgets/1/action`. The core validator reports a missing launch field at
- *  the widget path (rule `launch-required-field`) and names the field in the message, so that
- *  error goes to the field the action lacks. Anything else at the action path is under `_`. */
-export function fieldErrors(
-  errors: ValidationError[],
-  widgetPath: string,
-  actionPath: string,
-  action: Action | undefined,
-): Record<string, ValidationError[]> {
+ *  example `/pages/0/widgets/1/holdAction`. The core validator reports a missing launch field
+ *  at `<actionPath>/<field>`, so each slot gets only its own errors. An error at the action
+ *  path itself is under `_`. */
+export function fieldErrors(errors: ValidationError[], actionPath: string): Record<string, ValidationError[]> {
   const out: Record<string, ValidationError[]> = {}
-  const add = (key: string, e: ValidationError) => (out[key] ??= []).push(e)
   for (const e of errors) {
-    if (e.path === actionPath || e.path.startsWith(actionPath + '/')) {
-      const rest = e.path.slice(actionPath.length + 1).split('/')[0]
-      add(rest === '' ? '_' : rest, e)
-    } else if (
-      e.path === widgetPath &&
-      e.rule === 'launch-required-field' &&
-      action?.type === 'launch'
-    ) {
-      const field = requiredField(action.kind)
-      const missing = action[field] === undefined
-      if (missing && e.message.includes(`"${field}"`)) add(field, e)
+    if (e.path === actionPath) (out._ ??= []).push(e)
+    else if (e.path.startsWith(actionPath + '/')) {
+      const field = e.path.slice(actionPath.length + 1).split('/')[0]
+      ;(out[field] ??= []).push(e)
     }
   }
   return out
+}
+
+const MACRO_FIELDS = ['keys', 'cycleMs', 'keyGapMs', 'holdMs']
+
+/** True when a form field of the tile shows this error already, so the inspector list leaves
+ *  it out. `actions` maps each action slot of the widget to its action. */
+export function shownByForm(
+  e: ValidationError,
+  prefix: string,
+  actions: Record<string, Action | undefined>,
+): boolean {
+  for (const [slot, a] of Object.entries(actions)) {
+    if (a === undefined) continue
+    const path = `${prefix}/${slot}`
+    if (e.path === path) return true
+    if (!e.path.startsWith(path + '/')) continue
+    const field = e.path.slice(path.length + 1).split('/')[0]
+    if (a.type === 'launch') return field === requiredField(a.kind)
+    if (a.type === 'key_macro') return MACRO_FIELDS.includes(field)
+  }
+  return false
 }
 
 /** Light hints the user sees before the validator answers. They never block anything. */

@@ -37,22 +37,34 @@
     onchange({ ...action, keys })
   }
 
+  // The listener sits on the window only while recording, so Tab, typing in a field and the
+  // rest of the page work normally the rest of the time. Esc stops and is not recorded.
   function record(e: KeyboardEvent) {
-    if (!recording) return
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      recording = false
+      return
+    }
     e.preventDefault()
     e.stopPropagation()
+    if (e.repeat) return
     const name = keyFromEvent(e)
     if (name === null) return
     setKeys([...action.keys, name])
   }
+
+  $effect(() => {
+    if (!recording) return
+    window.addEventListener('keydown', record, true)
+    return () => window.removeEventListener('keydown', record, true)
+  })
 
   function num(e: Event & { currentTarget: HTMLInputElement }) {
     const v = e.currentTarget.value
     return v === '' ? undefined : Number(v)
   }
 </script>
-
-<svelte:window onkeydowncapture={record} />
 
 <div class="form" data-form="macro">
   <label>
@@ -73,6 +85,7 @@
       type="button"
       data-action="record-keys"
       aria-pressed={recording}
+      onblur={() => (recording = false)}
       onclick={() => (recording = !recording)}
     >
       {recording ? 'Stop recording' : 'Record keys'}

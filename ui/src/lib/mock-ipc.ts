@@ -295,7 +295,7 @@ function mockValidate(deck: Deck) {
           const field = { steam: 'appId', exe: 'path', uri: 'target', url: 'target' }[a.kind as string]
           if (field && a[field] === undefined)
             errors.push({
-              path: at,
+              path: `${at}/${key}/${field}`,
               rule: 'launch-required-field',
               message: `widget "${w.id}": a launch action of kind ${a.kind} needs the field "${field}"`,
               fix: `add "${field}" to the launch action`,

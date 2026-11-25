@@ -5,6 +5,7 @@ import { Draft } from '../draft.svelte'
 import {
   LIMITS,
   fieldErrors,
+  shownByForm,
   keyFromEvent,
   newLaunch,
   newMacro,
@@ -29,8 +30,8 @@ describe('launch form mapping', () => {
     let a = setLaunchField(newLaunch('steam'), 'appId', 440)
     a = setLaunchKind(a, 'exe')
     expect(a).toEqual({ type: 'launch', kind: 'exe' })
-    a = setLaunchField(a, 'path', 'C:\g.exe')
-    a = setLaunchField(a, 'fallback', 'D:\g.exe')
+    a = setLaunchField(a, 'path', String.raw`C:\g.exe`)
+    a = setLaunchField(a, 'fallback', String.raw`D:\g.exe`)
     a = setLaunchKind(a, 'url')
     expect(a).toEqual({ type: 'launch', kind: 'url' })
     a = setLaunchField(a, 'target', 'https://example.com')
@@ -51,12 +52,21 @@ describe('macro form mapping', () => {
     expect(parseKeys('')).toEqual([])
   })
 
-  it('names recorded keys and skips bare modifiers', () => {
-    const e = { key: 'q', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false }
+  it('names recorded keys from the physical key', () => {
+    const e = { code: 'KeyQ', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false }
     expect(keyFromEvent(e)).toBe('ctrl+q')
-    expect(keyFromEvent({ ...e, key: 'Control' })).toBeNull()
-    expect(keyFromEvent({ ...e, key: ' ', ctrlKey: false })).toBe('space')
-    expect(keyFromEvent({ ...e, key: 'F5', ctrlKey: false, altKey: true })).toBe('alt+f5')
+    expect(keyFromEvent({ ...e, code: 'Space', ctrlKey: false })).toBe('space')
+    expect(keyFromEvent({ ...e, code: 'F5', ctrlKey: false, altKey: true })).toBe('alt+f5')
+    expect(keyFromEvent({ ...e, code: 'Digit1', ctrlKey: false, shiftKey: true })).toBe('shift+1')
+    expect(keyFromEvent({ ...e, code: 'Equal', ctrlKey: false, shiftKey: true })).toBe('shift+=')
+    expect(keyFromEvent({ ...e, code: 'Backslash', ctrlKey: false })).toBe('\\')
+    expect(keyFromEvent({ ...e, code: 'ArrowLeft', ctrlKey: false, metaKey: true })).toBe('win+left')
+  })
+
+  it('rejects modifiers alone and keys outside the allow-list', () => {
+    const e = { code: '', ctrlKey: false, shiftKey: false, altKey: false, metaKey: false }
+    for (const code of ['ControlLeft', 'ShiftRight', 'AltLeft', 'MetaLeft', 'Escape', 'Comma', 'Numpad5', '', 'Unidentified', 'Dead', 'constructor', 'MediaPlayPause'])
+      expect(keyFromEvent({ ...e, code, ctrlKey: true })).toBeNull()
   })
 
   it('sets and clears numbers and toggle', () => {
@@ -77,24 +87,32 @@ describe('macro form mapping', () => {
 
 describe('field errors', () => {
   const widget = '/pages/0/widgets/0'
-  it('maps a missing launch field to that field, by the message', () => {
+  it('gives each action slot only its own errors, by the full path', () => {
     const errors = [
-      {
-        path: widget,
-        rule: 'launch-required-field',
-        message: 'widget "a": a launch action of kind exe needs the field "path"',
-        fix: 'add "path"',
-      },
+      { path: `${widget}/action/appId`, rule: 'launch-required-field', message: 'm1', fix: 'f' },
+      { path: `${widget}/holdAction/appId`, rule: 'launch-required-field', message: 'm2', fix: 'f' },
+      { path: `${widget}/holdAction`, rule: 'widget-action', message: 'm3', fix: 'f' },
     ] as ValidationError[]
-    const a = newLaunch('exe')
-    expect(Object.keys(fieldErrors(errors, widget, `${widget}/action`, a))).toEqual(['path'])
-    // another action of the widget that has its field is not blamed
-    expect(fieldErrors(errors, widget, `${widget}/holdAction`, setLaunchField(a, 'path', 'x'))).toEqual({})
+    expect(fieldErrors(errors, `${widget}/action`).appId.map((e) => e.message)).toEqual(['m1'])
+    const hold = fieldErrors(errors, `${widget}/holdAction`)
+    expect(hold.appId.map((e) => e.message)).toEqual(['m2'])
+    expect(hold._.map((e) => e.message)).toEqual(['m3'])
+  })
+
+  it('leaves out of the inspector list what a form field shows', () => {
+    const e = (path: string) => ({ path, rule: 'r', message: 'm', fix: 'f' }) as ValidationError
+    const acts = { action: newLaunch('steam'), holdAction: undefined }
+    expect(shownByForm(e(`${widget}/action/appId`), widget, acts)).toBe(true)
+    expect(shownByForm(e(`${widget}/action`), widget, acts)).toBe(true)
+    expect(shownByForm(e(`${widget}/action/path`), widget, acts)).toBe(false)
+    expect(shownByForm(e(`${widget}/holdAction/appId`), widget, acts)).toBe(false)
+    expect(shownByForm(e(`${widget}/label`), widget, acts)).toBe(false)
+    expect(shownByForm(e(`${widget}/action/keys`), widget, { action: newMacro() })).toBe(true)
   })
 
   it('maps a path under the action to its field', () => {
     const errors = [{ path: `${widget}/action/keys`, rule: 'schema', message: 'm', fix: 'f' }] as ValidationError[]
-    expect(Object.keys(fieldErrors(errors, widget, `${widget}/action`, newMacro()))).toEqual(['keys'])
+    expect(Object.keys(fieldErrors(errors, `${widget}/action`))).toEqual(['keys'])
   })
 })
 

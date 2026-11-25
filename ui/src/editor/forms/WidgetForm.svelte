@@ -62,7 +62,7 @@
 
   {#each slots as slot (slot.key)}
     {@const a = actionOf(slot.key)}
-    {@const errs = fieldErrors(draft.errors, prefix, `${prefix}/${slot.key}`, a)}
+    {@const errs = fieldErrors(draft.errors, `${prefix}/${slot.key}`)}
     <fieldset data-slot={slot.key}>
       <legend>{slot.title}</legend>
       {#if a === undefined}
