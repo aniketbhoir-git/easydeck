@@ -10,10 +10,21 @@
   import Volume from './Volume.svelte'
 
   // `hold` is true for a long press: the app then runs the widget's holdAction.
+  // In edit mode (`editing`) a tap only selects the tile: no action runs, and a counter, timer,
+  // toggle or volume tile changes nothing.
   let {
     widget,
     onpress,
-  }: { widget: PlacedWidget; onpress: (id: string, hold?: boolean) => void } = $props()
+    editing = false,
+    selected = false,
+    onselect,
+  }: {
+    widget: PlacedWidget
+    onpress: (id: string, hold?: boolean) => void
+    editing?: boolean
+    selected?: boolean
+    onselect?: (id: string) => void
+  } = $props()
 
   const pos = $derived(widget.position)
   let pressed = $state(false)
@@ -33,13 +44,20 @@
 {#if widget.type === 'volume'}
   <!-- A volume tile handles its own pointer events (slider drag, mute button), so it is a
        div, not the tap/hold button, and makes no run_action call. -->
+  <!-- In edit mode the slider and mute button are inert, so a tap lands on this div. -->
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
   <div
     class="tile volume-tile"
+    class:editing
+    class:selected
     data-widget-id={widget.id}
+    onclick={() => editing && onselect?.(widget.id)}
     style:grid-column="{pos.x + 1} / span {pos.w ?? 1}"
     style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
   >
-    <Volume {widget} w={pos.w ?? 1} h={pos.h ?? 1} />
+    <div class="volume-wrap" inert={editing}>
+      <Volume {widget} w={pos.w ?? 1} h={pos.h ?? 1} />
+    </div>
     {#if widget.label}<span class="label">{widget.label}</span>{/if}
   </div>
 {:else}
@@ -47,6 +65,8 @@
   type="button"
   class="tile"
   class:pressed
+  class:editing
+  class:selected
   class:ended={timer?.isEnded()}
   aria-pressed={widget.type === 'toggle' ? !!toggle?.isOn() : undefined}
   style:--tile-bg={toggle?.color()}
@@ -55,13 +75,16 @@
   style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
   use:press={{
     onTap: () =>
-      widget.type === 'toggle'
+      editing
+        ? onselect?.(widget.id)
+        : widget.type === 'toggle'
         ? toggle?.tap()
         : isSelfHandled
           ? own?.tap()
           : onpress(widget.id),
-    onHold:
-      widget.type === 'toggle'
+    onHold: editing
+      ? undefined
+      : widget.type === 'toggle'
         ? undefined
         : isSelfHandled
           ? () => own?.reset()
@@ -124,6 +147,10 @@
     border-color: #7aa2f7;
   }
 
+  .volume-wrap {
+    display: contents;
+  }
+
   .volume-tile {
     padding: 0.5rem;
     cursor: default;
@@ -146,6 +173,18 @@
       background: #b04040;
       transform: scale(1.04);
     }
+  }
+
+  /* Edit mode: a dashed outline marks every tile; the selected one is solid. */
+  .tile.editing {
+    border-style: dashed;
+    border-color: #6b7080;
+  }
+
+  .tile.editing.selected {
+    border-style: solid;
+    border-color: #7aa2f7;
+    box-shadow: 0 0 0 2px #7aa2f7;
   }
 
   .icon {

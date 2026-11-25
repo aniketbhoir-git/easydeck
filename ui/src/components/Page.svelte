@@ -2,7 +2,19 @@
   import { placedWidgets, type Page } from '../lib/api'
   import Tile from './Tile.svelte'
 
-  let { page, onpress }: { page: Page; onpress: (id: string) => void } = $props()
+  let {
+    page,
+    onpress,
+    editing = false,
+    selectedId = null,
+    onselect,
+  }: {
+    page: Page
+    onpress: (id: string) => void
+    editing?: boolean
+    selectedId?: string | null
+    onselect?: (id: string) => void
+  } = $props()
 </script>
 
 <section
@@ -12,7 +24,7 @@
   style:grid-template-rows="repeat({page.grid.rows}, minmax(0, 1fr))"
 >
   {#each placedWidgets(page) as widget (widget.id)}
-    <Tile {widget} {onpress} />
+    <Tile {widget} {onpress} {editing} selected={editing && widget.id === selectedId} {onselect} />
   {/each}
 </section>
 
