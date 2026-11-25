@@ -1,6 +1,6 @@
 //! Validation: version gate, JSON Schema, then semantic checks the schema cannot express.
 
-use super::model::{Action, Deck, LaunchKind, Page, Source, Widget, WidgetKind};
+use super::model::{Action, Deck, LaunchKind, Page, Source, TimerMode, Widget, WidgetKind};
 use crate::layout::{self, LayoutError};
 use serde::Serialize;
 use serde_json::Value;
@@ -335,6 +335,30 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
                 ),
                 "set start so that min <= start <= max, or change min or max",
             ));
+        }
+    }
+
+    if let WidgetKind::Timer { mode, duration_s } = &widget.kind {
+        let problem = match (mode, duration_s) {
+            (TimerMode::Countdown, None) => Some((
+                format!("countdown timer \"{}\" has no durationS", widget.id),
+                "set durationS to a number of seconds from 1 to 86400",
+            )),
+            (TimerMode::Countdown, Some(d)) if !(1..=86_400).contains(d) => Some((
+                format!(
+                    "countdown timer \"{}\" has durationS {d}, outside 1 to 86400",
+                    widget.id
+                ),
+                "set durationS to a number of seconds from 1 to 86400",
+            )),
+            (TimerMode::Stopwatch, Some(_)) => Some((
+                format!("stopwatch \"{}\" must not set durationS", widget.id),
+                "remove durationS, or change mode to countdown",
+            )),
+            _ => None,
+        };
+        if let Some((message, fix)) = problem {
+            errors.push(ValidationError::new(base, "timer-duration", message, fix));
         }
     }
 
