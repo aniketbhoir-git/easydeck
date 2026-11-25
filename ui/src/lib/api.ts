@@ -46,3 +46,16 @@ export function placedWidgets(page: Page): PlacedWidget[] {
   }
   return placed
 }
+
+/** One problem the core validator found in a deck. `path` is a JSON pointer into the deck. */
+export interface ValidationError {
+  path: string
+  rule: string
+  message: string
+  fix: string
+}
+
+/** Validates a draft deck with the core rules. An empty list means the deck is valid. */
+export function validateDeck(deck: Deck): Promise<ValidationError[]> {
+  return invoke<ValidationError[]>('validate_deck', { deck })
+}

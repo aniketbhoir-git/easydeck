@@ -218,6 +218,81 @@ export const volumeDeck: Deck = {
   ],
 }
 
+
+// One of each self-handled tile, plus a launch tile, with one free cell at (2, 1). A second
+// page is full. Open the UI with `?deck=edit`. Used by the edit mode tests.
+export const editDeck: Deck = {
+  version: 1,
+  name: 'Edit deck',
+  sources: {},
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 3, rows: 2 },
+      widgets: [
+        { id: 'water', type: 'counter', label: 'Water', start: 2, step: 3, position: { x: 0, y: 0 } },
+        {
+          id: 'brew',
+          type: 'timer',
+          label: 'Brew',
+          mode: 'countdown',
+          durationS: 5,
+          position: { x: 1, y: 0 },
+        },
+        {
+          id: 'mic',
+          type: 'toggle',
+          label: 'Mic',
+          onAction: { type: 'key_macro', keys: ['ctrl+m'] },
+          position: { x: 2, y: 0 },
+        },
+        { id: 'vol', type: 'volume', label: 'Volume', position: { x: 0, y: 1 } },
+        {
+          id: 'game-one',
+          type: 'launch',
+          label: 'Game',
+          action: { type: 'launch', kind: 'steam', appId: 440 },
+          position: { x: 1, y: 1 },
+        },
+      ],
+    },
+    {
+      id: 'full',
+      title: 'Full',
+      grid: { columns: 1, rows: 1 },
+      widgets: [
+        {
+          id: 'only',
+          type: 'launch',
+          label: 'Only',
+          action: { type: 'launch', kind: 'steam', appId: 440 },
+          position: { x: 0, y: 0 },
+        },
+      ],
+    },
+  ],
+}
+
+// A small stand-in for the core validator, so e2e tests can see inline errors: the required
+// fields of the types the palette adds. The real rules live in easydeck-core.
+function mockValidate(deck: Deck) {
+  const errors: { path: string; rule: string; message: string; fix: string }[] = []
+  const need = (path: string, ok: unknown, what: string) => {
+    if (!ok) errors.push({ path, rule: 'required', message: `${what} is required`, fix: `set ${what}` })
+  }
+  deck.pages.forEach((page, pi) =>
+    page.widgets.forEach((w, wi) => {
+      const at = `/pages/${pi}/widgets/${wi}`
+      const f = w as Record<string, unknown>
+      if (w.type === 'launch' || w.type === 'macro') need(`${at}/action`, f.action, 'action')
+      if (w.type === 'toggle') need(`${at}/onAction`, f.onAction, 'onAction')
+      if (w.type === 'gauge') need(`${at}/metric`, f.metric, 'metric')
+      if (w.type === 'gauge' || w.type === 'status') need(`${at}/source`, f.source, 'source')
+    }),
+  )
+  return errors
+}
 // In-memory system volume for the mock. `?volume=off` makes the volume commands fail.
 const volume = { level: 40, muted: false }
 
@@ -237,8 +312,10 @@ export function installMockIpc(): void {
       if (which === 'timer') return timerDeck
       if (which === 'toggle') return toggleDeck
       if (which === 'volume') return volumeDeck
+      if (which === 'edit') return editDeck
       return fixtureDeck
     }
+    if (cmd === 'validate_deck') return mockValidate((args as { deck: Deck }).deck)
     if (cmd === 'run_action') {
       // Test hook: `?fail=<widgetId>` makes run_action reject for that widget.
       const fail = new URLSearchParams(location.search).get('fail')
