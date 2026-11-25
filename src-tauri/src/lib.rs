@@ -16,7 +16,8 @@ pub fn run() {
             let state = app.state::<ipc::state::AppState>();
             app.state::<sources::SourceRunner>()
                 .restart(&handle, state.deck());
-            app.state::<volume::VolumeService>().start_poller(handle);
+            app.state::<volume::VolumeService>()
+                .start_poller(handle, state.deck());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

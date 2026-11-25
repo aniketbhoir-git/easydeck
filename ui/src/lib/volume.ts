@@ -70,3 +70,22 @@ export function createLatestThrottle<T>(send: (v: T) => void, intervalMs = SET_I
     },
   }
 }
+
+/** A poll event that read the old volume can arrive just after a local change. */
+export const STALE_EVENT_MS = 600
+
+/**
+ * Tracks the last local change on a monotonic clock. `fresh()` is true for `windowMs` after
+ * `mark()`; the caller ignores `volume` events while it is.
+ */
+export function createLocalChangeGuard(windowMs = STALE_EVENT_MS) {
+  let last = -Infinity
+  return {
+    mark() {
+      last = performance.now()
+    },
+    fresh() {
+      return performance.now() - last < windowMs
+    },
+  }
+}

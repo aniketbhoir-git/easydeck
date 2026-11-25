@@ -3,6 +3,7 @@
   import type { Widget } from '../lib/api'
   import {
     createLatestThrottle,
+    createLocalChangeGuard,
     isVertical,
     levelFromPointer,
     onVolume,
@@ -23,6 +24,8 @@
   let dragging = $state(false)
   let track: HTMLDivElement | undefined = $state()
 
+  const local = createLocalChangeGuard()
+
   const sender = createLatestThrottle((v: number) => {
     volumeSet(v).catch(() => (level = null))
   })
@@ -39,8 +42,9 @@
       })
       .catch(() => (level = null))
     onVolume((v) => {
+      if (dragging || local.fresh()) return
       muted = v.muted
-      if (!dragging) level = v.level
+      level = v.level
     })
       .then((u) => (stopped ? u() : (unlisten = u)))
       .catch(() => {})
@@ -58,11 +62,13 @@
       ? levelFromPointer(e.clientY, r.top, r.height, true)
       : levelFromPointer(e.clientX, r.left, r.width, false)
     level = v
+    local.mark()
     sender.push(v)
   }
 
   function down(e: PointerEvent) {
     if (e.pointerType === 'mouse' && e.button !== 0) return
+    if (level === null) return
     dragging = true
     track?.setPointerCapture?.(e.pointerId)
     move(e)
@@ -73,10 +79,23 @@
   }
 
   function key(e: KeyboardEvent) {
-    const step = { ArrowRight: 5, ArrowUp: 5, ArrowLeft: -5, ArrowDown: -5 }[e.key]
-    if (step === undefined || level === null) return
+    if (level === null) return
+    const rel: Record<string, number> = {
+      ArrowRight: 5,
+      ArrowUp: 5,
+      ArrowLeft: -5,
+      ArrowDown: -5,
+      PageUp: 10,
+      PageDown: -10,
+    }
+    const abs: Record<string, number> = { Home: 0, End: 100 }
+    let next: number
+    if (e.key in abs) next = abs[e.key]
+    else if (e.key in rel) next = level + rel[e.key]
+    else return
     e.preventDefault()
-    level = Math.min(100, Math.max(0, level + step))
+    level = Math.min(100, Math.max(0, next))
+    local.mark()
     sender.push(level)
   }
 

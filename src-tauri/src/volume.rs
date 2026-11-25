@@ -5,6 +5,7 @@
 
 use crate::error::AppError;
 use easydeck_core::audio::{poll_change, AudioEndpoint, AudioError, VolumeState};
+use easydeck_core::deck::{Deck, WidgetKind};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -38,7 +39,19 @@ impl VolumeService {
     }
 
     /// Starts the poller on its own thread (it keeps one COM apartment for its lifetime).
-    pub fn start_poller(&self, app: AppHandle) {
+    ///
+    /// Starts only when `deck` has a `volume` widget, so a deck without one costs nothing.
+    /// The deck is fixed at startup today; a deck reload must call `stop` and then this again.
+    pub fn start_poller(&self, app: AppHandle, deck: &Deck) {
+        let has_volume = deck
+            .pages
+            .iter()
+            .flat_map(|p| &p.widgets)
+            .any(|w| matches!(w.kind, WidgetKind::Volume {}));
+        if !has_volume {
+            return;
+        }
+        self.stop.store(false, Ordering::Relaxed);
         let (endpoint, stop) = (self.endpoint.clone(), self.stop.clone());
         std::thread::spawn(move || {
             let mut last = None;

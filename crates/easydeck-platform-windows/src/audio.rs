@@ -101,18 +101,23 @@ mod tests {
         let ep = WindowsAudioEndpoint::new();
         let original = ep.get().expect("an output device is required");
         let target = if original.level == 37 { 38 } else { 37 };
-        let result = (|| -> Result<(), AudioError> {
-            ep.set_level(target)?;
-            ep.set_muted(!original.muted)?;
-            let now = ep.get()?;
-            assert_eq!(now.level, target);
-            assert_eq!(now.muted, !original.muted);
-            Ok(())
-        })();
-        // Restore before reporting anything.
-        let _ = ep.set_level(original.level);
-        let _ = ep.set_muted(original.muted);
-        result.unwrap();
-        assert_eq!(ep.get().unwrap(), original);
+        // Restores the original level and mute on drop, so a failed assert (a panic) cannot
+        // leave the machine changed.
+        struct Restore<'a> {
+            ep: &'a WindowsAudioEndpoint,
+            original: VolumeState,
+        }
+        impl Drop for Restore<'_> {
+            fn drop(&mut self) {
+                let _ = self.ep.set_level(self.original.level);
+                let _ = self.ep.set_muted(self.original.muted);
+            }
+        }
+        let _restore = Restore { ep: &ep, original };
+        ep.set_level(target).unwrap();
+        ep.set_muted(!original.muted).unwrap();
+        let now = ep.get().unwrap();
+        assert_eq!(now.level, target);
+        assert_eq!(now.muted, !original.muted);
     }
 }

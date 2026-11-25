@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createLatestThrottle, isVertical, levelFromPointer } from './volume'
+import { createLatestThrottle, createLocalChangeGuard, isVertical, levelFromPointer } from './volume'
 
 describe('createLatestThrottle', () => {
   beforeEach(() => {
@@ -79,5 +79,20 @@ describe('isVertical', () => {
     expect(isVertical(2, 1)).toBe(false)
     expect(isVertical(1, 1)).toBe(false)
     expect(isVertical()).toBe(false)
+  })
+})
+
+describe('createLocalChangeGuard', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('is fresh for 600 ms after a mark and not before', () => {
+    const g = createLocalChangeGuard()
+    expect(g.fresh()).toBe(false)
+    g.mark()
+    vi.advanceTimersByTime(599)
+    expect(g.fresh()).toBe(true)
+    vi.advanceTimersByTime(2)
+    expect(g.fresh()).toBe(false)
   })
 })
