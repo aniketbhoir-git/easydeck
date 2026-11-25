@@ -5,6 +5,7 @@
   import StatusWidget from './StatusWidget.svelte'
   import Counter from './Counter.svelte'
   import TextWidget from './TextWidget.svelte'
+  import Volume from './Volume.svelte'
 
   // `hold` is true for a long press: the app then runs the widget's holdAction.
   let {
@@ -20,6 +21,19 @@
   const isCounter = $derived(widget.type === 'counter')
 </script>
 
+{#if widget.type === 'volume'}
+  <!-- A volume tile handles its own pointer events (slider drag, mute button), so it is a
+       div, not the tap/hold button, and makes no run_action call. -->
+  <div
+    class="tile volume-tile"
+    data-widget-id={widget.id}
+    style:grid-column="{pos.x + 1} / span {pos.w ?? 1}"
+    style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
+  >
+    <Volume {widget} w={pos.w ?? 1} h={pos.h ?? 1} />
+    {#if widget.label}<span class="label">{widget.label}</span>{/if}
+  </div>
+{:else}
 <button
   type="button"
   class="tile"
@@ -53,6 +67,7 @@
     <span class="label" aria-hidden={widget.type === 'gauge' || widget.type === 'status' ? 'true' : undefined}>{widget.label}</span>
   {/if}
 </button>
+{/if}
 
 <style>
   .tile {
@@ -83,6 +98,16 @@
     transform: scale(0.94);
     background: #3b4252;
     border-color: #7aa2f7;
+  }
+
+  .volume-tile {
+    padding: 0.5rem;
+    cursor: default;
+    touch-action: none;
+  }
+
+  .volume-tile :global(.volume) {
+    flex: 1;
   }
 
   .icon {
