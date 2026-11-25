@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getContext, untrack } from 'svelte'
+  import { getContext } from 'svelte'
   import type { Widget } from '../lib/api'
   import { counterKey, nextValue, parseStored, resetValue } from '../lib/counter'
   import { readState, writeState } from '../lib/widget-state'
@@ -10,9 +10,10 @@
   const deckName = getContext<(() => string) | undefined>('deckName')
   const key = $derived(counterKey(deckName?.() ?? '', widget.id))
   let value = $state(0)
-  // Runs on mount and whenever the key changes (renamed deck): reload from storage.
+  // Runs on mount, when the key changes (renamed deck) and when the widget changes (a new
+  // min or max): reload from storage and clamp.
   $effect.pre(() => {
-    value = parseStored(readState(key), untrack(() => widget))
+    value = parseStored(readState(key), widget)
   })
 
   function set(v: number) {

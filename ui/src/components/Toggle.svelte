@@ -25,14 +25,17 @@
   export async function tap() {
     if (busy) return
     busy = true
+    // The key can change while the call is pending (renamed deck). Then the new key already
+    // holds its own state: do not write to it and do not revert over it.
+    const k = key
     const before = current
     const target = flip(before)
     current = target
     try {
       await runToggle(widget.id, target)
-      writeState(key, target)
+      if (key === k) writeState(k, target)
     } catch (err) {
-      current = before
+      if (key === k) current = before
       console.error('run_action failed', err)
     } finally {
       busy = false
