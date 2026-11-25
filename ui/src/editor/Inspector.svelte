@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Draft } from './draft.svelte'
+  import WidgetForm from './forms/WidgetForm.svelte'
 
-  // The selected tile's details and the validation problems. It shows facts only: the forms
-  // that change a tile (R4-2) and move, resize and delete (R4-3) are not built yet.
+  // The selected tile's details, its form (R4-2) and the validation problems. Move, resize
+  // and delete (R4-3) are not built yet.
   let { draft }: { draft: Draft } = $props()
 
   const selected = $derived(draft.selected)
@@ -32,6 +33,7 @@
         <dd>column {w.position.x + 1}, row {w.position.y + 1}</dd>
       {/if}
     </dl>
+    {#if prefix}<WidgetForm {draft} widget={w} {prefix} />{/if}
     {#if own.length}
       <ul class="errors" data-testid="inspector-errors">
         {#each own as e, i (i)}

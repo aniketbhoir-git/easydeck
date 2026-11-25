@@ -129,6 +129,19 @@ export class Draft {
     return widget.id
   }
 
+  /** Sets fields on the selected widget. A value of `undefined` removes the field. This is
+   *  how the forms of R4-2 write to the draft; they never touch the live deck. */
+  patchSelected(patch: Record<string, unknown>) {
+    const sel = this.selected
+    if (!sel) return
+    const target = sel.widget as unknown as Record<string, unknown>
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === undefined) delete target[k]
+      else target[k] = v
+    }
+    void this.revalidate()
+  }
+
   /** Throws the changes away and returns to the state the draft started from. */
   discard() {
     this.deck = JSON.parse(this.#base) as Deck
