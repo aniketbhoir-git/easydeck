@@ -66,7 +66,7 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Gadget build order follows the research list (clock, counter, timer, gauge, volume, media, toggle look, long press) | The research ranks these as basic and low risk | Reorder the issues |
 
 | 2026-11-25 | `run_action` takes `{ widgetId, hold: true }` for a long press; a hold on a tile without `holdAction` is a tap (G-6) | A slow touch must not be lost | Change `press.ts` |
-| 2026-11-25 | The approval step must check the action that runs (`holdAction` when `hold` is true) | Review note on G-6 | — (rule for the approval issue) |
+| 2026-11-25 | The approval step must check the action that runs (`holdAction` when `hold` is true; `onAction` or `offAction` for a toggle). It hooks `dispatch_impl`, the one entry of `run_action`. Text, gauge and status tiles still reach `run_action` on a tap; the action step must decide per widget kind | Review notes on G-6 and G-5 | — (rule for the approval issue) |
 | 2026-11-25 | R2-1 reads CPU and RAM with windows-rs (`GetSystemTimes`, `GlobalMemoryStatusEx`), not `sysinfo` | `sysinfo` is not in SPEC §2; a new dependency needs the owner | Owner approves `sysinfo` |
 | 2026-11-25 | GPU load from `nvidia-smi` (hidden window, 2 s timeout, off after one failure); `cpu.temp` is always `null` | No driver-free source for CPU temperature | Add a sensor source later |
 | 2026-11-25 | Counter value kept in WebView `localStorage`, key `easydeck:widget:<deck>:<widget>` (G-2) | Never in the deck file; simplest store | Move to an app-side state file |
