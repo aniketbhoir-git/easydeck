@@ -5,6 +5,7 @@
   import StatusWidget from './StatusWidget.svelte'
   import Counter from './Counter.svelte'
   import Timer from './Timer.svelte'
+  import Toggle from './Toggle.svelte'
   import TextWidget from './TextWidget.svelte'
   import Volume from './Volume.svelte'
 
@@ -25,6 +26,8 @@
     widget.type === 'counter' ? counter : widget.type === 'timer' ? timer : undefined,
   )
   const isSelfHandled = $derived(widget.type === 'counter' || widget.type === 'timer')
+  // A toggle flips itself and tells the backend which state it switched to. No long press.
+  let toggle = $state<{ tap: () => void; color: () => string | undefined; isOn: () => boolean }>()
 </script>
 
 {#if widget.type === 'volume'}
@@ -45,16 +48,26 @@
   class="tile"
   class:pressed
   class:ended={timer?.isEnded()}
+  aria-pressed={widget.type === 'toggle' ? !!toggle?.isOn() : undefined}
+  style:--tile-bg={toggle?.color()}
   data-widget-id={widget.id}
   style:grid-column="{pos.x + 1} / span {pos.w ?? 1}"
   style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
   use:press={{
-    onTap: () => (isSelfHandled ? own?.tap() : onpress(widget.id)),
-    onHold: isSelfHandled
-      ? () => own?.reset()
-      : hasHold
-        ? () => onpress(widget.id, true)
-        : undefined,
+    onTap: () =>
+      widget.type === 'toggle'
+        ? toggle?.tap()
+        : isSelfHandled
+          ? own?.tap()
+          : onpress(widget.id),
+    onHold:
+      widget.type === 'toggle'
+        ? undefined
+        : isSelfHandled
+          ? () => own?.reset()
+          : hasHold
+            ? () => onpress(widget.id, true)
+            : undefined,
     onPressing: (v) => (pressed = v),
   }}
   oncontextmenu={(e) => e.preventDefault()}
@@ -69,10 +82,12 @@
     <Counter {widget} bind:this={counter} />
   {:else if widget.type === 'timer'}
     <Timer {widget} bind:this={timer} />
+  {:else if widget.type === 'toggle'}
+    <Toggle {widget} bind:this={toggle} />
   {:else if widget.icon}
     <span class="icon" aria-hidden="true">{widget.icon}</span>
   {/if}
-  {#if widget.label}
+  {#if widget.label && widget.type !== 'toggle'}
     <span class="label" aria-hidden={widget.type === 'gauge' || widget.type === 'status' ? 'true' : undefined}>{widget.label}</span>
   {/if}
 </button>
@@ -89,7 +104,7 @@
     gap: 0.4rem;
     border: 1px solid #3a3d45;
     border-radius: 12px;
-    background: #23252b;
+    background: var(--tile-bg, #23252b);
     color: inherit;
     font: inherit;
     cursor: pointer;
