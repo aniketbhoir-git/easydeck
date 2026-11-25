@@ -1,7 +1,7 @@
 //! The generated deck contract: the JSON Schema and the TypeScript types (SPEC §4.1).
 //! `easydeck-cli gen` writes them; `gen --check` compares them with the committed files.
 
-use crate::deck::Deck;
+use crate::deck::{Deck, RiskReview};
 use std::collections::BTreeMap;
 use std::path::Path;
 use ts_rs::TS;
@@ -61,7 +61,10 @@ pub fn typescript_files() -> std::io::Result<BTreeMap<String, String>> {
     let dir = std::env::temp_dir().join(format!("easydeck-ts-{}-{n}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir)?;
-    let result = Deck::export_all(&ts_rs::Config::new().with_out_dir(&dir))
+    let cfg = ts_rs::Config::new().with_out_dir(&dir);
+    // The deck types, and the types of the risk review that the app sends to the UI.
+    let result = Deck::export_all(&cfg)
+        .and_then(|()| RiskReview::export_all(&cfg))
         .map_err(|e| std::io::Error::other(e.to_string()))
         .and_then(|()| read_ts_files(&dir));
     let _ = std::fs::remove_dir_all(&dir);

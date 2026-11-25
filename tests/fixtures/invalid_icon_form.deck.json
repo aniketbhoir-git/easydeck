@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "Bad icons",
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": { "columns": 3, "rows": 1 },
+      "widgets": [
+        {
+          "id": "a",
+          "type": "launch",
+          "icon": "//evil.example/a.png",
+          "action": { "type": "launch", "kind": "steam", "appId": 440 },
+          "position": { "x": 0, "y": 0 }
+        },
+        {
+          "id": "b",
+          "type": "toggle",
+          "icon": "icons/ok.png",
+          "onAction": { "type": "key_macro", "keys": ["f9"] },
+          "on": { "icon": "http://example.com/on.png" },
+          "off": { "icon": "https:\\\\evil.example\\off.png" },
+          "position": { "x": 1, "y": 0 }
+        }
+      ]
+    }
+  ]
+}
