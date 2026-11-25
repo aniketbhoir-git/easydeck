@@ -353,6 +353,28 @@ function mockValidate(deck: Deck) {
       const f = w as Record<string, unknown>
       if (w.type === 'launch' || w.type === 'macro') need(`${at}/action`, f.action, 'action')
       if (w.type === 'toggle') need(`${at}/onAction`, f.onAction, 'onAction')
+      // The core rules for actions: a launch kind needs its field; a macro needs a key.
+      for (const key of ['action', 'holdAction', 'onAction', 'offAction']) {
+        const a = f[key] as Record<string, unknown> | undefined
+        if (!a) continue
+        if (a.type === 'launch') {
+          const field = { steam: 'appId', exe: 'path', uri: 'target', url: 'target' }[a.kind as string]
+          if (field && a[field] === undefined)
+            errors.push({
+              path: `${at}/${key}/${field}`,
+              rule: 'launch-required-field',
+              message: `widget "${w.id}": a launch action of kind ${a.kind} needs the field "${field}"`,
+              fix: `add "${field}" to the launch action`,
+            })
+        }
+        if (a.type === 'key_macro' && !(a.keys as string[] | undefined)?.length)
+          errors.push({
+            path: `${at}/${key}/keys`,
+            rule: 'schema',
+            message: 'keys: fewer than 1 item',
+            fix: 'add at least one key',
+          })
+      }
       if (w.type === 'gauge') need(`${at}/metric`, f.metric, 'metric')
       if (w.type === 'gauge' || w.type === 'status') need(`${at}/source`, f.source, 'source')
     }),

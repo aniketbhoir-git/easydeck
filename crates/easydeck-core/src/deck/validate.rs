@@ -257,7 +257,7 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
         }
     }
 
-    let actions: Vec<&Action> = match &widget.kind {
+    let actions: Vec<(&str, &Action)> = match &widget.kind {
         WidgetKind::Launch {
             action,
             hold_action,
@@ -266,19 +266,19 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
         | WidgetKind::Macro {
             action,
             hold_action,
-        } => std::iter::once(action)
-            .chain(hold_action.as_ref())
+        } => std::iter::once(("action", action))
+            .chain(hold_action.as_ref().map(|a| ("holdAction", a)))
             .collect(),
         WidgetKind::Toggle {
             on_action,
             off_action,
             ..
-        } => std::iter::once(on_action)
-            .chain(off_action.as_ref())
+        } => std::iter::once(("onAction", on_action))
+            .chain(off_action.as_ref().map(|a| ("offAction", a)))
             .collect(),
         _ => Vec::new(),
     };
-    for action in actions {
+    for (slot, action) in actions {
         if let Action::Launch {
             kind,
             app_id,
@@ -295,7 +295,7 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
             };
             if missing {
                 errors.push(ValidationError::new(
-                    base,
+                    format!("{base}/{slot}/{field}"),
                     "launch-required-field",
                     format!(
                         "widget \"{}\": a launch action of kind {} needs the field \"{field}\"",

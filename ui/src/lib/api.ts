@@ -2,8 +2,10 @@ import { invoke } from '@tauri-apps/api/core'
 
 // The deck types are generated from the Rust model (crates/easydeck-core/src/deck/model.rs).
 // Do not edit ui/src/lib/generated/; run `cargo run -p easydeck-cli -- gen` instead.
+export type { Action } from './generated/Action'
 export type { Deck } from './generated/Deck'
 export type { Grid } from './generated/Grid'
+export type { LaunchKind } from './generated/LaunchKind'
 export type { Page } from './generated/Page'
 export type { Position } from './generated/Position'
 export type { Settings } from './generated/Settings'
