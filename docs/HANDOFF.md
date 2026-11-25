@@ -92,3 +92,13 @@ A-5 (#34, runs after milestone M1).
 7. **G-2 counter and G-3 timer.** Run `npx vite --mode e2e` from `ui/` (mock deck, no app) and open
    `http://localhost:1420/?deck=counter` and `?deck=timer` in a browser. Tap, long press,
    and check the end pulse of the 5 s countdown.
+8. **G-4 volume (PR #63).** Add a `volume` widget to your deck file (for example
+   `{ "id": "vol", "type": "volume", "label": "Volume" }`). From `ui/`, run `npm run tauri dev`.
+   1. Drag the slider. The Windows mixer must follow, and the tile must show the same percent.
+   2. Tap the mute button. Windows must mute, and the tile must show the red "muted" state.
+   3. Change the volume with the keyboard keys or the mixer. The tile must update within
+      about 1 s.
+   4. Mute from Windows. The tile must show "muted".
+   5. Switch the default output device. The tile must follow it.
+   6. Turn off all output devices. The tile must show "no data", with mute greyed out.
+   7. Check a wide tile and a tall tile.
