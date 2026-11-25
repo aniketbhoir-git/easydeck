@@ -33,6 +33,12 @@ fn clock_fixture_loads() {
     assert_eq!(deck.pages[0].widgets.len(), 4);
 }
 
+#[test]
+fn counter_fixture_loads() {
+    let deck = load("valid_counter.deck.json").expect("counter fixture should load");
+    assert_eq!(deck.pages[0].widgets.len(), 2);
+}
+
 /// (fixture, expected error path, expected message substring)
 const INVALID: &[(&str, &str, &str)] = &[
     (
@@ -123,6 +129,16 @@ const INVALID: &[(&str, &str, &str)] = &[
         "invalid_null_optional.deck.json",
         "/pages/0/widgets/0/label",
         "null is not of type",
+    ),
+    (
+        "invalid_counter_step.deck.json",
+        "/pages/0/widgets/0",
+        "step 0",
+    ),
+    (
+        "invalid_counter_range.deck.json",
+        "/pages/0/widgets/0",
+        "outside its min and max",
     ),
     ("invalid_not_json.deck.json", "", "not valid JSON"),
     ("does_not_exist.deck.json", "", "could not read"),
