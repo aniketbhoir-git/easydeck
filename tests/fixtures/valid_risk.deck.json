@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "name": "Risk items",
+  "sources": {
+    "api": { "kind": "http_poll", "url": "https://example.com/health", "intervalSeconds": 30 },
+    "stats": { "kind": "system_stats" }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": { "columns": 4, "rows": 2 },
+      "widgets": [
+        {
+          "id": "game",
+          "type": "launch",
+          "label": "Game",
+          "icon": "icons/game.png",
+          "action": { "type": "launch", "kind": "steam", "appId": 440 },
+          "holdAction": { "type": "launch", "kind": "exe", "path": "C:/Games/x.exe", "args": ["-windowed"] },
+          "position": { "x": 0, "y": 0 }
+        },
+        {
+          "id": "desktop",
+          "type": "macro",
+          "label": "Desktop",
+          "action": { "type": "key_macro", "keys": ["win+d"] },
+          "position": { "x": 1, "y": 0 }
+        },
+        {
+          "id": "lock",
+          "type": "toggle",
+          "label": "Lock",
+          "icon": "https://example.com/lock.png",
+          "onAction": { "type": "shell", "command": "lock-screen" },
+          "offAction": { "type": "page", "page": "home" },
+          "position": { "x": 2, "y": 0 }
+        },
+        {
+          "id": "web",
+          "type": "embed",
+          "url": "https://example.com/panel",
+          "position": { "x": 0, "y": 1, "w": 2, "h": 1 }
+        },
+        {
+          "id": "heal",
+          "type": "macro",
+          "label": "Heal",
+          "icon": "❤",
+          "action": { "type": "key_macro", "keys": ["1"], "cycleMs": 3000, "toggle": true },
+          "position": { "x": 3, "y": 0 }
+        }
+      ]
+    }
+  ]
+}

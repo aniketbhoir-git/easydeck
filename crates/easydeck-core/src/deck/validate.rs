@@ -1,6 +1,7 @@
 //! Validation: version gate, JSON Schema, then semantic checks the schema cannot express.
 
 use super::model::{Action, Deck, LaunchKind, Page, Source, TimerMode, Widget, WidgetKind};
+use super::risk::icon_form_is_valid;
 use crate::layout::{self, LayoutError};
 use serde::Serialize;
 use serde_json::Value;
@@ -402,6 +403,34 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
         };
         if let Some((message, fix)) = problem {
             errors.push(ValidationError::new(base, "timer-duration", message, fix));
+        }
+    }
+
+    // Icon forms (SPEC 4.3): a pack path, glyph text or one plain https URL.
+    let mut icons: Vec<(&str, &String)> = widget.icon.iter().map(|i| ("icon", i)).collect();
+    if let WidgetKind::Toggle { on, off, .. } = &widget.kind {
+        icons.extend(
+            on.iter()
+                .filter_map(|l| l.icon.as_ref())
+                .map(|i| ("on/icon", i)),
+        );
+        icons.extend(
+            off.iter()
+                .filter_map(|l| l.icon.as_ref())
+                .map(|i| ("off/icon", i)),
+        );
+    }
+    for (field, icon) in icons {
+        if !icon_form_is_valid(icon) {
+            errors.push(ValidationError::new(
+                format!("{base}/{field}"),
+                "icon-form",
+                format!(
+                    "widget \"{}\" has an icon that is not a pack path, glyph text or an https URL: {icon:.80}",
+                    widget.id
+                ),
+                "use a path that starts with icons/ and has only letters, digits and _ - . /; or plain text or an emoji without / \\ : . % @; or a full https://host/path URL",
+            ));
         }
     }
 

@@ -193,6 +193,16 @@ const INVALID: &[(&str, &str, &str)] = &[
         "/pages/0/widgets/0",
         "step",
     ),
+    (
+        "invalid_icon_form.deck.json",
+        "/pages/0/widgets/0/icon",
+        "not a pack path, glyph text or an https URL",
+    ),
+    (
+        "invalid_icon_form.deck.json",
+        "/pages/0/widgets/1/off/icon",
+        "not a pack path, glyph text or an https URL",
+    ),
     ("invalid_not_json.deck.json", "", "not valid JSON"),
     ("does_not_exist.deck.json", "", "could not read"),
 ];
@@ -222,8 +232,9 @@ fn validate_accepts_value_and_matches_load() {
 /// Snapshots hold the messages an LLM reads: path, rule, message and fix.
 #[test]
 fn invalid_fixture_messages_are_stable() {
+    let mut seen = std::collections::HashSet::new();
     for (name, ..) in INVALID {
-        if *name == "does_not_exist.deck.json" {
+        if *name == "does_not_exist.deck.json" || !seen.insert(*name) {
             continue;
         }
         let errors = load(name).expect_err(name);

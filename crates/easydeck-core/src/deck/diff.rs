@@ -6,7 +6,7 @@
 //! short summary and `runs`, which tells the risk review (A-8) that the entry adds or changes
 //! something that runs a program or reaches the network.
 
-use super::{Action, Deck, DeckStore, Page, Source, Widget, WidgetKind};
+use super::{risk, Action, Deck, DeckStore, Page, Source, Widget};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -160,12 +160,9 @@ fn source_kind(s: &Source) -> &'static str {
     }
 }
 
-/// What a source reaches: the polled URL.
-fn source_payload(s: &Source) -> Option<&str> {
-    match s {
-        Source::HttpPoll { url, .. } => Some(url),
-        _ => None,
-    }
+/// What a source reaches, as the risk scan finds it.
+fn source_payload(s: &Source) -> Option<Value> {
+    risk::source_risk(s)
 }
 
 fn diff_sources(old: &Deck, new: &Deck, out: &mut Vec<DiffEntry>) {
@@ -454,69 +451,12 @@ fn action_text(v: &Value) -> String {
     }
 }
 
-/// True only when an icon value cannot name a network endpoint (SPEC 4.3). This is an
-/// allow-list: a browser or Windows fetches many forms (`//host/a.png`, `https:host/a.png`,
-/// `https:\\evil.host\a.png`, `\\host\share\a.png`, `file://host/a.png`, `ftp://...`, any case),
-/// so a deny-list on `http(s)://` is not safe. An icon is inert only if it is
-/// (a) a pack path: `icons/` plus `[A-Za-z0-9_./-]`, with no empty, `.` or `..` segment, or
-/// (b) plain glyph text (an emoji or a short word) with none of `/ \ : . % @`.
-/// Every other value counts as a network endpoint. A validator rule for icon forms
-/// belongs to A-8.
-fn icon_is_inert(icon: &str) -> bool {
-    if let Some(rest) = icon.strip_prefix("icons/") {
-        return !rest.is_empty()
-            && rest
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '/' | '-'))
-            && !rest
-                .split('/')
-                .any(|seg| seg.is_empty() || seg == "." || seg == "..");
-    }
-    !icon
-        .chars()
-        .any(|c| matches!(c, '/' | '\\' | ':' | '.' | '%' | '@'))
-}
-
-/// What a widget runs or reaches: its launch, key macro and shell actions, its `embed` URL
-/// and any icon that is not inert (a network endpoint, SPEC 4.3), as JSON. Page switches run
-/// nothing. A change here is a change to what runs.
+/// What a widget runs or reaches, as the risk scan (`risk.rs`) finds it: its launch, key macro
+/// and shell actions, its `embed` URL and any icon that is not inert (a network endpoint,
+/// SPEC 4.3). Page switches run nothing. A change here is a change to what runs.
 fn widget_payload(w: &Widget) -> Vec<Value> {
-    let mut out = kind_payload(w);
-    let mut icons: Vec<&String> = w.icon.iter().collect();
-    if let WidgetKind::Toggle { on, off, .. } = &w.kind {
-        icons.extend(on.iter().chain(off.iter()).filter_map(|l| l.icon.as_ref()));
-    }
-    out.extend(
-        icons
-            .into_iter()
-            .filter(|u| !icon_is_inert(u))
-            .map(|u| serde_json::json!({ "icon": u })),
-    );
-    out
-}
-
-fn kind_payload(w: &Widget) -> Vec<Value> {
-    let acts: Vec<Option<&Action>> = match &w.kind {
-        WidgetKind::Launch {
-            action,
-            hold_action,
-            ..
-        }
-        | WidgetKind::Macro {
-            action,
-            hold_action,
-        } => vec![Some(action), hold_action.as_ref()],
-        WidgetKind::Toggle {
-            on_action,
-            off_action,
-            ..
-        } => vec![Some(on_action), off_action.as_ref()],
-        WidgetKind::Embed { url, .. } => return vec![Value::String(url.clone())],
-        _ => vec![],
-    };
-    acts.into_iter()
-        .flatten()
-        .filter(|a| !matches!(a, Action::Page { .. }))
-        .map(to_value)
+    risk::widget_risks(w)
+        .into_iter()
+        .map(|f| f.subject)
         .collect()
 }

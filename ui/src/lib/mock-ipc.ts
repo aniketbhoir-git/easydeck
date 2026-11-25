@@ -2,7 +2,7 @@
 // (`vite build --mode e2e`), so it is never part of the production bundle.
 import { mockIPC } from '@tauri-apps/api/mocks'
 import { emit } from '@tauri-apps/api/event'
-import type { Deck } from './api'
+import type { Deck, RiskReview } from './api'
 import noPositionsResolved from '../../../tests/fixtures/valid_no_positions.resolved.json'
 
 declare global {
@@ -274,6 +274,72 @@ export const editDeck: Deck = {
   ],
 }
 
+// A deck with one approved launch tile (`ok`), one launch tile that is not approved (`evil`),
+// a key macro that is not approved and uses the Windows key (`desktop`), and an `http_poll`
+// source that is not approved. Open the UI with `?deck=risk`. The mock holds the ledger in
+// memory; `?notice=1` adds the one-time message about a damaged ledger file.
+export const riskDeck: Deck = {
+  version: 1,
+  name: 'Risk deck',
+  sources: { api: { kind: 'http_poll', url: 'https://example.com/api' } },
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 4, rows: 2 },
+      widgets: [
+        {
+          id: 'ok',
+          type: 'launch',
+          label: 'Ok',
+          position: { x: 0, y: 0 },
+          action: { type: 'launch', kind: 'exe', path: 'C:/Games/ok.exe' },
+        },
+        {
+          id: 'evil',
+          type: 'launch',
+          label: 'Evil',
+          position: { x: 1, y: 0 },
+          action: { type: 'launch', kind: 'exe', path: 'C:/Games/evil.exe' },
+        },
+        {
+          id: 'desktop',
+          type: 'macro',
+          label: 'Desktop',
+          position: { x: 2, y: 0 },
+          action: { type: 'key_macro', keys: ['win+d'] },
+        },
+        { id: 'clock', type: 'text', kind: 'clock', position: { x: 3, y: 0 } },
+      ],
+    },
+  ],
+}
+
+const hash = (c: string) => c.repeat(64)
+const riskItems = [
+  { hash: hash('1'), kind: 'launch', summary: 'start program C:/Games/ok.exe', locations: ['pages/home/widgets/ok/action'] },
+  { hash: hash('2'), kind: 'launch', summary: 'start program C:/Games/evil.exe', locations: ['pages/home/widgets/evil/action'] },
+  { hash: hash('3'), kind: 'key_macro', summary: 'send keys win+d', systemShortcut: true, locations: ['pages/home/widgets/desktop/action'] },
+  { hash: hash('4'), kind: 'network', summary: 'poll https://example.com/api on a timer', locations: ['sources/api'] },
+] as const
+const approvedHashes = new Set<string>([hash('1')])
+
+function mockReview(): RiskReview {
+  const notice =
+    new URLSearchParams(location.search).get('notice') && !noticeShown
+      ? 'The approvals file was damaged, so every action needs approval again. The old file is kept as approvals.json.corrupt.'
+      : null
+  if (notice) noticeShown = true
+  return {
+    notice,
+    items: riskItems.map((i) => ({
+      approved: approvedHashes.has(i.hash),
+      item: { systemShortcut: false, ...i, locations: [...i.locations] },
+    })),
+  }
+}
+let noticeShown = false
+
 // A small stand-in for the core validator, so e2e tests can see inline errors: the required
 // fields of the types the palette adds. The real rules live in easydeck-core.
 function mockValidate(deck: Deck) {
@@ -335,7 +401,20 @@ export function installMockIpc(): void {
       if (which === 'toggle') return toggleDeck
       if (which === 'volume') return volumeDeck
       if (which === 'edit') return editDeck
+      if (which === 'risk') return riskDeck
       return fixtureDeck
+    }
+    if (cmd === 'risk_review') {
+      // Only the risk deck has risk items; the other fixtures count as approved.
+      return new URLSearchParams(location.search).get('deck') === 'risk'
+        ? mockReview()
+        : { items: [], notice: null }
+    }
+    if (cmd === 'approve_risk_items') {
+      const hashes = (args as { hashes: string[] }).hashes
+      if (hashes.some((h) => !riskItems.some((i) => i.hash === h))) throw new Error('not in the deck')
+      hashes.forEach((h) => approvedHashes.add(h))
+      return mockReview()
     }
     if (cmd === 'validate_deck') return mockValidate((args as { deck: Deck }).deck)
     if (cmd === 'run_action') {

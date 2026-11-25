@@ -18,12 +18,18 @@
     editing = false,
     selected = false,
     onselect,
+    locked = false,
+    onreview,
   }: {
     widget: PlacedWidget
     onpress: (id: string, hold?: boolean) => void
     editing?: boolean
     selected?: boolean
     onselect?: (id: string) => void
+    // A tile with an unapproved risk item is inert: it shows a lock, and a tap or a long press
+    // opens the review screen instead of running anything (SPEC 4.3).
+    locked?: boolean
+    onreview?: () => void
   } = $props()
 
   const pos = $derived(widget.position)
@@ -71,12 +77,15 @@
   aria-pressed={widget.type === 'toggle' ? !!toggle?.isOn() : undefined}
   style:--tile-bg={toggle?.color()}
   data-widget-id={widget.id}
+  data-locked={locked && !editing ? 'true' : undefined}
   style:grid-column="{pos.x + 1} / span {pos.w ?? 1}"
   style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
   use:press={{
     onTap: () =>
       editing
         ? onselect?.(widget.id)
+        : locked
+        ? onreview?.()
         : widget.type === 'toggle'
         ? toggle?.tap()
         : isSelfHandled
@@ -84,7 +93,9 @@
           : onpress(widget.id),
     onHold: editing
       ? undefined
-      : widget.type === 'toggle'
+      : locked
+        ? () => onreview?.()
+        : widget.type === 'toggle'
         ? undefined
         : isSelfHandled
           ? () => own?.reset()
@@ -109,6 +120,9 @@
     <Toggle {widget} bind:this={toggle} />
   {:else if widget.icon}
     <span class="icon" aria-hidden="true">{widget.icon}</span>
+  {/if}
+  {#if locked && !editing}
+    <span class="lock" data-testid="lock-badge" role="img" aria-label="Locked: needs approval">🔒</span>
   {/if}
   {#if widget.label && widget.type !== 'toggle'}
     <span class="label" aria-hidden={widget.type === 'gauge' || widget.type === 'status' ? 'true' : undefined}>{widget.label}</span>
@@ -185,6 +199,23 @@
     border-style: solid;
     border-color: #7aa2f7;
     box-shadow: 0 0 0 2px #7aa2f7;
+  }
+
+  .tile {
+    position: relative;
+  }
+
+  .lock {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .tile[data-locked='true'] {
+    border-style: dotted;
+    opacity: 0.75;
   }
 
   .icon {

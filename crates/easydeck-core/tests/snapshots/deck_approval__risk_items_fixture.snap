@@ -1,0 +1,78 @@
+---
+source: crates/easydeck-core/tests/deck_approval.rs
+expression: items
+---
+[
+  {
+    "kind": "network",
+    "hash": "53f3211e23393e9df71e05539144eead00f3eb2501c0f3bb6b2168ffa0943583",
+    "summary": "poll https://example.com/health on a timer",
+    "systemShortcut": false,
+    "locations": [
+      "sources/api"
+    ]
+  },
+  {
+    "kind": "launch",
+    "hash": "cd55eefd82fba404b785affefbb54973ba86621957cc4720afea95b7f69ee994",
+    "summary": "launch Steam app 440",
+    "systemShortcut": false,
+    "locations": [
+      "pages/home/widgets/game/action"
+    ]
+  },
+  {
+    "kind": "launch",
+    "hash": "b1d1fa6316bbc7cdc524b0080183586394be3314253cbb07cf33774341fa6147",
+    "summary": "start program C:/Games/x.exe with arguments [\"-windowed\"]",
+    "systemShortcut": false,
+    "locations": [
+      "pages/home/widgets/game/holdAction"
+    ]
+  },
+  {
+    "kind": "key_macro",
+    "hash": "d21e1887e59de68db977fb430d2e98f71f3ec414a876ac0a8c8b71e66f70cde7",
+    "summary": "send keys win+d",
+    "systemShortcut": true,
+    "locations": [
+      "pages/home/widgets/desktop/action"
+    ]
+  },
+  {
+    "kind": "shell",
+    "hash": "b200bc8d9df35cdf51c32e9583c67c42681a28e5ac966a955347962b4bf458ec",
+    "summary": "run shell command \"lock-screen\"",
+    "systemShortcut": false,
+    "locations": [
+      "pages/home/widgets/lock/onAction"
+    ]
+  },
+  {
+    "kind": "network",
+    "hash": "5103252f4bcef7c0a88cfac2e94a839c6dc2bbe76d3ccb7384e02003fcde6a8c",
+    "summary": "load the icon from https://example.com/lock.png",
+    "systemShortcut": false,
+    "locations": [
+      "pages/home/widgets/lock/icon"
+    ]
+  },
+  {
+    "kind": "network",
+    "hash": "f47dceda775163f9cbd7f8844a99909d000ce43fea92ab07ba79f15efc9466e6",
+    "summary": "show the web page https://example.com/panel (it can go elsewhere from there)",
+    "systemShortcut": false,
+    "locations": [
+      "pages/home/widgets/web/url"
+    ]
+  },
+  {
+    "kind": "key_macro",
+    "hash": "60abf6fa7adee8a9fd9021cad3eca7b4821b92b116a4f08dbadd7fd6f254549c",
+    "summary": "send keys 1, repeat every 3000 ms, a tap starts and stops the loop",
+    "systemShortcut": false,
+    "locations": [
+      "pages/home/widgets/heal/action"
+    ]
+  }
+]

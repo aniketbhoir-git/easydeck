@@ -14,6 +14,12 @@ pub enum AppError {
         message: String,
         detail: Option<String>,
     },
+    /// An action whose risk item is not in the approval ledger (SPEC §6.1). Nothing ran.
+    #[error("{message}")]
+    NeedsApproval {
+        message: String,
+        detail: Option<String>,
+    },
     #[error("{message}")]
     Io {
         message: String,
@@ -31,6 +37,7 @@ impl AppError {
         match self {
             Self::Invalid { .. } => "invalid",
             Self::NotFound { .. } => "not_found",
+            Self::NeedsApproval { .. } => "needs_approval",
             Self::Io { .. } => "io",
             Self::Internal { .. } => "internal",
         }
@@ -40,6 +47,7 @@ impl AppError {
         match self {
             Self::Invalid { detail, .. }
             | Self::NotFound { detail, .. }
+            | Self::NeedsApproval { detail, .. }
             | Self::Io { detail, .. }
             | Self::Internal { detail, .. } => detail.as_deref(),
         }

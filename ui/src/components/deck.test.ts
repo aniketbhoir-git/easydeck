@@ -81,6 +81,27 @@ describe('Deck', () => {
     expect(invoke).toHaveBeenCalledWith('run_action', { widgetId: 'b' })
   })
 
+  it('a locked tile opens the review and calls nothing', async () => {
+    const onreview = vi.fn()
+    render(Deck, { deck, locked: new Set(['home/b']), onreview })
+    await fireEvent.click(screen.getByText('Beta'))
+    expect(onreview).toHaveBeenCalledTimes(1)
+    expect(invoke).not.toHaveBeenCalled()
+    await fireEvent.click(screen.getByText('Alpha'))
+    expect(invoke).toHaveBeenCalledWith('run_action', { widgetId: 'a' })
+  })
+
+  it('opens the review when the backend answers needs_approval', async () => {
+    const onreview = vi.fn()
+    const err = { code: 'needs_approval', message: 'x', detail: null, retryable: false }
+    invoke.mockRejectedValue(err)
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    render(Deck, { deck, onreview })
+    await fireEvent.click(screen.getByText('Beta'))
+    await vi.waitFor(() => expect(onreview).toHaveBeenCalledTimes(1))
+    spy.mockRestore()
+  })
+
   it('calls run_action with hold on a long press of a tile with a holdAction', async () => {
     vi.useFakeTimers()
     try {

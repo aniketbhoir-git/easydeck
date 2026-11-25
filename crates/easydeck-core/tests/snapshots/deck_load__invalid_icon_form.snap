@@ -1,0 +1,24 @@
+---
+source: crates/easydeck-core/tests/deck_load.rs
+expression: errors
+---
+[
+  {
+    "path": "/pages/0/widgets/0/icon",
+    "rule": "icon-form",
+    "message": "widget \"a\" has an icon that is not a pack path, glyph text or an https URL: //evil.example/a.png",
+    "fix": "use a path that starts with icons/ and has only letters, digits and _ - . /; or plain text or an emoji without / \\ : . % @; or a full https://host/path URL"
+  },
+  {
+    "path": "/pages/0/widgets/1/on/icon",
+    "rule": "icon-form",
+    "message": "widget \"b\" has an icon that is not a pack path, glyph text or an https URL: http://example.com/on.png",
+    "fix": "use a path that starts with icons/ and has only letters, digits and _ - . /; or plain text or an emoji without / \\ : . % @; or a full https://host/path URL"
+  },
+  {
+    "path": "/pages/0/widgets/1/off/icon",
+    "rule": "icon-form",
+    "message": "widget \"b\" has an icon that is not a pack path, glyph text or an https URL: https:\\\\evil.example\\off.png",
+    "fix": "use a path that starts with icons/ and has only letters, digits and _ - . /; or plain text or an emoji without / \\ : . % @; or a full https://host/path URL"
+  }
+]
