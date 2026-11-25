@@ -71,11 +71,36 @@ export const fixtureDeck: Deck = {
   ],
 }
 
+// What `load_deck` returns for a deck file whose widgets have no `position`: easydeck-core
+// `layout::resolve` has filled the first free cells in reading order (the same deck as
+// tests/fixtures/valid_no_positions.deck.json). Open the UI with `?deck=no-positions`.
+export const noPositionsDeck: Deck = {
+  version: 1,
+  name: 'No positions',
+  sources: {},
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 3, rows: 2 },
+      widgets: ['a', 'b', 'c', 'd', 'e'].map((id, i) => ({
+        id,
+        type: 'launch' as const,
+        label: id.toUpperCase(),
+        action: { type: 'launch' as const, kind: 'steam' as const, appId: 440 },
+        position: { x: i % 3, y: Math.floor(i / 3), w: 1, h: 1 },
+      })),
+    },
+  ],
+}
+
 export function installMockIpc(): void {
   window.__ipcCalls = []
   mockIPC((cmd, args) => {
     window.__ipcCalls.push({ cmd, args })
-    if (cmd === 'load_deck') return fixtureDeck
+    if (cmd === 'load_deck') {
+      return new URLSearchParams(location.search).get('deck') === 'no-positions' ? noPositionsDeck : fixtureDeck
+    }
     if (cmd === 'run_action') return undefined
     throw new Error(`unmocked command: ${cmd}`)
   })

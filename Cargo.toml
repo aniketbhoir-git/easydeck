@@ -12,3 +12,4 @@ ts-rs = "=12.0.1"
 insta = { version = "=1.49.0", features = ["json"] }
 tokio = "1"
 sysinfo = { version = "=0.40.4", default-features = false, features = ["system"] }
+proptest = "=1.12.0"
