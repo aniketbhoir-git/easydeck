@@ -1,13 +1,19 @@
 //! [`StatsReader`] for Windows: CPU and RAM through windows-rs, GPU through `nvidia-smi`.
 
 use easydeck_core::sources::system_stats::{parse_nvidia_smi, StatsReader, StatsSnapshot};
+use std::io::Read;
 use std::os::windows::process::CommandExt;
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 use windows::Win32::Foundation::FILETIME;
 use windows::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
 use windows::Win32::System::Threading::GetSystemTimes;
 
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+/// Longest we wait for `nvidia-smi` before we kill it and give up on the GPU.
+const GPU_TIMEOUT: Duration = Duration::from_secs(2);
+/// A CPU reading needs at least this much elapsed system time (10 ms, in 100 ns ticks).
+const MIN_CPU_DELTA_TICKS: u64 = 100_000;
 
 fn filetime_ticks(t: FILETIME) -> u64 {
     (u64::from(t.dwHighDateTime) << 32) | u64::from(t.dwLowDateTime)
@@ -45,27 +51,32 @@ fn memory_bytes() -> Option<(f64, f64)> {
 pub struct WindowsStatsReader {
     /// Previous (idle, kernel + user) system times, in 100 ns ticks.
     last_times: (u64, u64),
-    /// False once `nvidia-smi` is missing or fails, so we stop spawning it every interval.
+    /// False after one `nvidia-smi` failure or timeout, so we stop spawning it every interval.
     gpu_available: bool,
 }
 
 impl WindowsStatsReader {
     pub fn new() -> windows::core::Result<Self> {
+        Self::with_gpu(true)
+    }
+
+    fn with_gpu(gpu_available: bool) -> windows::core::Result<Self> {
         // CPU load is a delta between two reads; prime the first one.
         let last_times = system_times()?;
         Ok(Self {
             last_times,
-            gpu_available: true,
+            gpu_available,
         })
     }
 
-    /// CPU load in percent since the previous call.
+    /// CPU load in percent since the previous call. `None` when the two samples are too
+    /// close together to mean anything (for example the first read right after `new`).
     fn read_cpu(&mut self) -> Option<f64> {
         let (idle, total) = system_times().ok()?;
         let (last_idle, last_total) = std::mem::replace(&mut self.last_times, (idle, total));
         let total_delta = total.saturating_sub(last_total);
-        if total_delta == 0 {
-            return Some(0.0);
+        if total_delta < MIN_CPU_DELTA_TICKS {
+            return None;
         }
         let idle_delta = idle.saturating_sub(last_idle).min(total_delta);
         Some((1.0 - idle_delta as f64 / total_delta as f64) * 100.0)
@@ -75,17 +86,7 @@ impl WindowsStatsReader {
         if !self.gpu_available {
             return (None, None);
         }
-        let out = Command::new("nvidia-smi")
-            .args([
-                "--query-gpu=utilization.gpu,temperature.gpu",
-                "--format=csv,noheader,nounits",
-            ])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output();
-        let reading = match out {
-            Ok(o) if o.status.success() => parse_nvidia_smi(&String::from_utf8_lossy(&o.stdout)),
-            _ => None,
-        };
+        let reading = run_nvidia_smi().and_then(|text| parse_nvidia_smi(&text));
         match reading {
             Some(r) => (r.load, r.temp),
             None => {
@@ -94,6 +95,48 @@ impl WindowsStatsReader {
             }
         }
     }
+}
+
+/// Runs `nvidia-smi` with fixed arguments and returns its stdout, or `None` on any failure
+/// or when it runs past [`GPU_TIMEOUT`] (the child is then killed).
+fn run_nvidia_smi() -> Option<String> {
+    let mut child = Command::new("nvidia-smi")
+        .args([
+            "--query-gpu=utilization.gpu,temperature.gpu",
+            "--format=csv,noheader,nounits",
+        ])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    // Drain stdout on a thread so a full pipe can never block the child.
+    let mut stdout = child.stdout.take()?;
+    let reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = stdout.read_to_end(&mut buf);
+        buf
+    });
+    let deadline = Instant::now() + GPU_TIMEOUT;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Some(status),
+            Ok(None) if Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                break None;
+            }
+        }
+    };
+    let buf = reader.join().ok()?;
+    let status = status?;
+    status
+        .success()
+        .then(|| String::from_utf8_lossy(&buf).into_owned())
 }
 
 impl StatsReader for WindowsStatsReader {
@@ -116,10 +159,10 @@ impl StatsReader for WindowsStatsReader {
 mod tests {
     use super::*;
 
-    /// Reads CPU and RAM once. Starts only `nvidia-smi`, and only if it is installed.
+    /// Reads CPU and RAM once. GPU reading is off, so no real program starts.
     #[test]
     fn reads_cpu_and_ram_in_range() {
-        let mut r = WindowsStatsReader::new().unwrap();
+        let mut r = WindowsStatsReader::with_gpu(false).unwrap();
         std::thread::sleep(std::time::Duration::from_millis(250));
         let s = r.read();
         let cpu = s.cpu_load.unwrap();
@@ -129,8 +172,6 @@ mod tests {
             total > 0.0 && used > 0.0 && used <= total,
             "ram {used}/{total}"
         );
-        if let Some(g) = s.gpu_load {
-            assert!((0.0..=100.0).contains(&g));
-        }
+        assert!(s.gpu_load.is_none() && s.gpu_temp.is_none());
     }
 }
