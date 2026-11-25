@@ -9,8 +9,9 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 ## State
 
 - Updated: 2026-11-25
-- `main`: A-2 (#41), A-7 (#51), A-3 (#50), A-4 (#52), G-1 (#53) merged.
-- Running: A-9 (#38) layout and G-6 (#49) long press, each in its own worktree.
+- `main`: A-2 (#41), A-7 (#51), A-3 (#50), A-4 (#52), G-1 (#53), A-9 (#55), G-6 (#57),
+  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62), G-4 (#63), G-5 (#64) merged.
+- Open for the owner: R2-3 media (PR #65, `review:owner`).
 - Check command: `cargo xtask check` (Windows), `cargo xtask check --core` (Linux).
 
 ## Done (this run)
@@ -25,14 +26,27 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
   without `--locked`; fixed.
 - G-1 (#53) merged: clock, date and label tile. `format` field replaced by `hour12`,
   `seconds`, `showDate`.
+- A-9 (#55) merged: `position` is optional; `layout::resolve` fills it for the UI only.
+  Follow-up #56: stronger layout tests.
+- G-6 (#57) merged: long press runs `holdAction`. The review caught hold tests that waited
+  on real time; they now run on a paused fake clock (`ui/e2e/hold.spec.ts`).
+- R2-1 (#58) merged: `system_stats` source, event `source:<id>`. The review caught a unit
+  test that started the real `nvidia-smi`; fixed.
+- G-2 (#59) merged: counter tile. Follow-up #60 (safe-integer range, deck-reload key).
+- R2-2 (#61) merged: gauge and status widgets, shared source store. The review caught a
+  frozen value on a silent source; the store now shows "no data" after 3× the interval.
+- G-3 (#62) merged: countdown and stopwatch tile on a monotonic clock.
+- G-4 (#63) merged: volume tile. The review caught a probe test that did not restore the
+  volume on failure; it now restores in a `Drop` guard.
+- G-5 (#64) merged: toggle look per state; `run_action { widgetId, toggle: 'on' | 'off' }`.
+  The review made a plain tap or a hold on a toggle `Invalid`.
 - Gadget issues filed: G-1 #44, G-2 #45, G-3 #46, G-4 #47, G-5 #48, G-6 #49 (label `gadget`).
 
 ## Next
 
-1. A-9 (#38) layout rules.
-2. Gadgets: G-6 long press (#49) → G-2 counter (#45)
-   → G-3 timer (#46) → R2-1 stats (#6) → R2-2 gauge (#7) → G-4 volume (#47) → R2-3 media
-   (#8) → G-5 toggle look (#48).
+1. R2-3 media on the system media session (#8; the old title said Spotify): PR #65 waits for
+   the owner's review.
+2. Follow-ups: #56 layout tests, #60 counter nits.
 
 Skipped: A-1 (#30, needs the owner at the touch monitor), A-6 (#35, waits for A-1),
 A-5 (#34, runs after milestone M1).
@@ -52,6 +66,16 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Screenshot compare is strict (`maxDiffPixels: 0`) | CI pins the Playwright container | Loosen to `maxDiffPixels: 20` if it flakes |
 | 2026-11-25 | Text widget: `format` removed; `hour12`, `seconds`, `showDate` added (G-1) | An unused field misleads LLM deck writers | Add `format` back with a parser |
 | 2026-11-25 | Gadget build order follows the research list (clock, counter, timer, gauge, volume, media, toggle look, long press) | The research ranks these as basic and low risk | Reorder the issues |
+| 2026-11-25 | `run_action` takes `{ widgetId, hold: true }` for a long press; a hold on a tile without `holdAction` is a tap (G-6) | A slow touch must not be lost | Change `press.ts` |
+| 2026-11-25 | The approval step must check the action that runs (`holdAction` when `hold` is true; `onAction` or `offAction` for a toggle). It hooks `dispatch_impl`, the one entry of `run_action`. Text, gauge and status tiles still reach `run_action` on a tap; the action step must decide per widget kind | Review notes on G-6 and G-5 | — (rule for the approval issue) |
+| 2026-11-25 | R2-1 reads CPU and RAM with windows-rs (`GetSystemTimes`, `GlobalMemoryStatusEx`), not `sysinfo` | `sysinfo` is not in SPEC §2; a new dependency needs the owner | Owner approves `sysinfo` |
+| 2026-11-25 | GPU load from `nvidia-smi` (hidden window, 2 s timeout, off after one failure); `cpu.temp` is always `null` | No driver-free source for CPU temperature | Add a sensor source later |
+| 2026-11-25 | Counter value kept in WebView `localStorage`, key `easydeck:widget:<deck>:<widget>` (G-2) | Never in the deck file; simplest store | Move to an app-side state file |
+| 2026-11-25 | Status `okWhen`: a number compares as a number, other values as text; no `okWhen` means non-zero is OK. `path` is a metric name (R2-2) | SPEC §4 does not define it | Change the model doc and `gauge.ts` |
+| 2026-11-25 | A tap on an ended countdown clears the pulse and resets; timer state is not kept across app runs (G-3) | Simplest; issue allows it | Change `timer.ts` |
+| 2026-11-25 | Volume: poll the default device every 500 ms instead of a COM callback (G-4) | Simpler; easy to swap | Implement `IAudioEndpointVolumeCallback` |
+| 2026-11-25 | Toggle colour: validator rule `toggle-color` only, no schema pattern (G-5) | A schema pattern gives a vague `oneOf` error; the rule gives a fix hint | Add the pattern |
+| 2026-11-25 | R2-3 media PR is not self-merged; it waits for the owner | The backlog marks R2-3 `review:owner` (no CODEOWNERS file exists) | Owner merges or says to self-merge |
 | 2026-11-25 | Media tile (R2-3): poll every 1000 ms and emit `media` only on change; the thumbnail is read once per track change, capped at 256 KB, and sent inside the event as a `data:image` URL; base64 is a small std-only encoder in core | Same pattern as volume; the SPEC §2 list has no base64 crate | Switch to the session manager's change events, or add a base64 crate after asking |
 
 ## Test queue for the owner
@@ -66,3 +90,31 @@ A-5 (#34, runs after milestone M1).
 4. **G-1 clock.** Open `docs/screenshots/G-1-clock-1920x480.png` and
    `docs/screenshots/G-1-clock-1024x600.png`. Then run `npm run tauri dev` from `ui/` and
    check that the clock ticks and the date line is right for your locale.
+5. **R2-1 stats.** Run `npm run tauri dev` from `ui/`. Check that the CPU gauge moves. If the
+   PC has an NVIDIA GPU, check that the GPU value shows. No console window may flash.
+6. **R2-2 gauge.** Open `docs/screenshots/R2-2-gauge-1920x480.png` and
+   `docs/screenshots/R2-2-gauge-1024x600.png`. Say if the gauge look is acceptable.
+7. **G-2 counter and G-3 timer.** Run `npx vite --mode e2e` from `ui/` (mock deck, no app) and open
+   `http://localhost:1420/?deck=counter` and `?deck=timer` in a browser. Tap, long press,
+   and check the end pulse of the 5 s countdown.
+8. **G-4 volume (PR #63).** Add a `volume` widget to your deck file (for example
+   `{ "id": "vol", "type": "volume", "label": "Volume" }`). From `ui/`, run `npm run tauri dev`.
+   1. Drag the slider. The Windows mixer must follow, and the tile must show the same percent.
+   2. Tap the mute button. Windows must mute, and the tile must show the red "muted" state.
+   3. Change the volume with the keyboard keys or the mixer. The tile must update within
+      about 1 s.
+   4. Mute from Windows. The tile must show "muted".
+   5. Switch the default output device. The tile must follow it.
+   6. Turn off all output devices. The tile must show "no data", with mute greyed out.
+   7. Check a wide tile and a tall tile.
+9. **G-5 toggle.** Run `npx vite --mode e2e` from `ui/` and open `?deck=toggle`. Tap the
+   toggle twice and check both looks.
+10. **R2-3 media (PR #65, review it line by line).** Add a `media` widget to a deck. From
+    `ui/`, run `npm run tauri dev`.
+    1. With no player running, the tile shows "Nothing playing" and all buttons are off.
+    2. Play a track in player A (for example a browser tab). Title, artist and cover show
+       within about 1 s.
+    3. Press previous, play/pause and next. Each acts on the player; the tile follows.
+    4. Do steps 2 and 3 again with player B (for example VLC). Start B last.
+    5. Close both players. The tile goes back to "Nothing playing".
+    6. With `controls: ["play_pause"]`, only that button shows.
