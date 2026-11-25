@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PlacedWidget } from '../lib/api'
   import { press } from '../lib/press'
+  import Counter from './Counter.svelte'
   import TextWidget from './TextWidget.svelte'
 
   // `hold` is true for a long press: the app then runs the widget's holdAction.
@@ -12,6 +13,9 @@
   const pos = $derived(widget.position)
   let pressed = $state(false)
   const hasHold = $derived('holdAction' in widget && !!widget.holdAction)
+  // A counter handles its own tap and long press; it makes no IPC call.
+  let counter = $state<{ tap: () => void; reset: () => void }>()
+  const isCounter = $derived(widget.type === 'counter')
 </script>
 
 <button
@@ -22,14 +26,20 @@
   style:grid-column="{pos.x + 1} / span {pos.w ?? 1}"
   style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
   use:press={{
-    onTap: () => onpress(widget.id),
-    onHold: hasHold ? () => onpress(widget.id, true) : undefined,
+    onTap: () => (isCounter ? counter?.tap() : onpress(widget.id)),
+    onHold: isCounter
+      ? () => counter?.reset()
+      : hasHold
+        ? () => onpress(widget.id, true)
+        : undefined,
     onPressing: (v) => (pressed = v),
   }}
   oncontextmenu={(e) => e.preventDefault()}
 >
   {#if widget.type === 'text'}
     <TextWidget {widget} />
+  {:else if widget.type === 'counter'}
+    <Counter {widget} bind:this={counter} />
   {:else if widget.icon}
     <span class="icon" aria-hidden="true">{widget.icon}</span>
   {/if}

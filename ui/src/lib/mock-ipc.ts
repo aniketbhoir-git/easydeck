@@ -95,12 +95,48 @@ export const noPositionsDeck: Deck = {
   ],
 }
 
+// A deck with one counter tile. Open the UI with `?deck=counter`. It is a separate fixture so
+// the starter deck, and its screenshot baselines, stay unchanged.
+export const counterDeck: Deck = {
+  version: 1,
+  name: 'Counter deck',
+  sources: {},
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 4, rows: 2 },
+      widgets: [
+        {
+          id: 'water',
+          type: 'counter',
+          label: 'Water',
+          start: 2,
+          step: 3,
+          max: 20,
+          position: { x: 0, y: 0 },
+        },
+        {
+          id: 'game-one',
+          type: 'launch',
+          label: 'Game',
+          position: { x: 1, y: 0 },
+          action: { type: 'launch', kind: 'steam', appId: 440 },
+        },
+      ],
+    },
+  ],
+}
+
 export function installMockIpc(): void {
   window.__ipcCalls = []
   mockIPC((cmd, args) => {
     window.__ipcCalls.push({ cmd, args })
     if (cmd === 'load_deck') {
-      return new URLSearchParams(location.search).get('deck') === 'no-positions' ? noPositionsDeck : fixtureDeck
+      const which = new URLSearchParams(location.search).get('deck')
+      if (which === 'no-positions') return noPositionsDeck
+      if (which === 'counter') return counterDeck
+      return fixtureDeck
     }
     if (cmd === 'run_action') return undefined
     throw new Error(`unmocked command: ${cmd}`)

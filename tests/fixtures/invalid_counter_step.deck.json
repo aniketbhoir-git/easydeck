@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "Counter deck",
+  "settings": {
+    "homePage": "home"
+  },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "widgets": [
+        {
+          "id": "water",
+          "type": "counter",
+          "label": "Water",
+          "step": 0,
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      ]
+    }
+  ]
+}

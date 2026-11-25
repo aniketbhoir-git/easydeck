@@ -296,6 +296,48 @@ fn widget_errors(base: &str, widget: &Widget, raw: Option<&Value>) -> Vec<Valida
         }
     }
 
+    if let WidgetKind::Counter {
+        start,
+        step,
+        min,
+        max,
+    } = &widget.kind
+    {
+        if *step == Some(0) {
+            errors.push(ValidationError::new(
+                base,
+                "counter-step",
+                format!(
+                    "counter \"{}\" has step 0, so a tap changes nothing",
+                    widget.id
+                ),
+                "set step to a non-zero whole number, or remove it to use 1",
+            ));
+        }
+        let start = start.unwrap_or(0);
+        let low = min.is_some_and(|m| start < m);
+        let high = max.is_some_and(|m| start > m);
+        let inverted = matches!((min, max), (Some(a), Some(b)) if a > b);
+        if inverted {
+            errors.push(ValidationError::new(
+                base,
+                "counter-range",
+                format!("counter \"{}\" has min above max", widget.id),
+                "set min to a value at or below max",
+            ));
+        } else if low || high {
+            errors.push(ValidationError::new(
+                base,
+                "counter-range",
+                format!(
+                    "counter \"{}\" has start {start} outside its min and max",
+                    widget.id
+                ),
+                "set start so that min <= start <= max, or change min or max",
+            ));
+        }
+    }
+
     // Unknown fields: a key in the file that the typed widget does not write back.
     if let (Some(Value::Object(raw)), Ok(Value::Object(known))) =
         (raw, serde_json::to_value(widget))
