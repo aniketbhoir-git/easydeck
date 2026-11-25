@@ -16,6 +16,8 @@
     selectedPageId = null,
     onselect,
     onrequestedit,
+    locked,
+    onreview,
     pageId = $bindable(null),
   }: {
     deck: Deck
@@ -24,6 +26,9 @@
     selectedPageId?: string | null
     onselect?: (id: string, pageId: string) => void
     onrequestedit?: () => void
+    // Tiles with an unapproved risk item, and how to open the review screen (SPEC 4.3).
+    locked?: Set<string>
+    onreview?: () => void
     pageId?: string | null
   } = $props()
   // Getters, so a reloaded deck (new name or sources) reaches the widgets.
@@ -41,6 +46,8 @@
     try {
       await runAction(widgetId, hold)
     } catch (err) {
+      // The backend refused: the item is not approved (any more). Show the review screen.
+      if ((err as { code?: string } | null)?.code === 'needs_approval') onreview?.()
       console.error('run_action failed', err)
     }
   }
@@ -101,7 +108,7 @@
     </nav>
   {/if}
   {#if current}
-    <Page page={current} onpress={press} {editing}
+    <Page page={current} onpress={press} {editing} {locked} {onreview}
       selectedId={selectedPageId === null || selectedPageId === current.id ? selectedId : null}
       onselect={(id) => onselect?.(id, current.id)} />
   {/if}

@@ -8,10 +8,14 @@ export type { Page } from './generated/Page'
 export type { Position } from './generated/Position'
 export type { Settings } from './generated/Settings'
 export type { Widget } from './generated/Widget'
+export type { RiskReview } from './generated/RiskReview'
+export type { ReviewItem } from './generated/ReviewItem'
+export type { RiskItem } from './generated/RiskItem'
 import type { Deck } from './generated/Deck'
 import type { Page } from './generated/Page'
 import type { Position } from './generated/Position'
 import type { Widget } from './generated/Widget'
+import type { RiskReview } from './generated/RiskReview'
 
 export interface AppError {
   code: string
@@ -32,6 +36,16 @@ export function runAction(widgetId: string, hold = false): Promise<void> {
 // A toggle tap sends the state it switches to. The backend picks onAction or offAction.
 export function runToggle(widgetId: string, toggle: 'on' | 'off'): Promise<void> {
   return invoke<void>('run_action', { widgetId, toggle })
+}
+
+/** The risk items of the deck, each marked approved or not. `notice` comes once. */
+export function riskReview(): Promise<RiskReview> {
+  return invoke<RiskReview>('risk_review')
+}
+
+/** Approves the items with these hashes (only hashes of this deck); returns the new review. */
+export function approveRiskItems(hashes: string[]): Promise<RiskReview> {
+  return invoke<RiskReview>('approve_risk_items', { hashes })
 }
 
 /** A widget whose position is filled in. `load_deck` places every widget in Rust
