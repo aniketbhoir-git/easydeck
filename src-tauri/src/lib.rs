@@ -23,6 +23,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             ipc::commands::load_deck,
             ipc::commands::run_action,
+            ipc::commands::validate_deck,
             volume::volume_get,
             volume::volume_set,
             volume::volume_mute

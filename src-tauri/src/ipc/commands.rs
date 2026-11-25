@@ -47,6 +47,17 @@ pub fn run_toggle_impl(state: &AppState, widget_id: &str, to_on: bool) -> Result
     state.toggle_action(widget_id, to_on).map(|_action| ())
 }
 
+/// Validates a draft deck from the editor with the same rules as a deck file. An empty list
+/// means the draft is valid. It reads nothing and changes nothing.
+pub fn validate_deck_impl(deck: &serde_json::Value) -> Vec<easydeck_core::deck::ValidationError> {
+    easydeck_core::deck::validate(deck)
+}
+
+#[tauri::command]
+pub fn validate_deck(deck: serde_json::Value) -> Vec<easydeck_core::deck::ValidationError> {
+    validate_deck_impl(&deck)
+}
+
 #[tauri::command]
 pub fn load_deck(state: tauri::State<'_, AppState>) -> Deck {
     load_deck_impl(&state)
@@ -99,6 +110,16 @@ mod tests {
             .iter()
             .flat_map(|p| &p.widgets)
             .all(|w| w.position.is_some()));
+    }
+
+    #[test]
+    fn validate_deck_accepts_the_loaded_deck_and_flags_a_broken_one() {
+        let state = AppState::bundled().unwrap();
+        let good = serde_json::to_value(load_deck_impl(&state)).unwrap();
+        assert!(validate_deck_impl(&good).is_empty());
+        let mut bad = good.clone();
+        bad["pages"][0]["widgets"][0]["bogus"] = serde_json::json!(1);
+        assert!(!validate_deck_impl(&bad).is_empty());
     }
 
     #[test]
