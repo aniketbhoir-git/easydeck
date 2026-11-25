@@ -10,8 +10,8 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 
 - Updated: 2026-11-25
 - `main`: A-2 (#41), A-7 (#51), A-3 (#50), A-4 (#52), G-1 (#53), A-9 (#55), G-6 (#57),
-  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62), G-4 (#63) merged.
-- Running: G-5 (#48) toggle look (PR #64) and R2-3 (#8) media, each in its own worktree.
+  R2-1 (#58), G-2 (#59), R2-2 (#61), G-3 (#62), G-4 (#63), G-5 (#64) merged.
+- Open for the owner: R2-3 media (PR #65, `review:owner`).
 - Check command: `cargo xtask check` (Windows), `cargo xtask check --core` (Linux).
 
 ## Done (this run)
@@ -38,12 +38,13 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 - G-3 (#62) merged: countdown and stopwatch tile on a monotonic clock.
 - G-4 (#63) merged: volume tile. The review caught a probe test that did not restore the
   volume on failure; it now restores in a `Drop` guard.
+- G-5 (#64) merged: toggle look per state; `run_action { widgetId, toggle: 'on' | 'off' }`.
+  The review made a plain tap or a hold on a toggle `Invalid`.
 - Gadget issues filed: G-1 #44, G-2 #45, G-3 #46, G-4 #47, G-5 #48, G-6 #49 (label `gadget`).
 
 ## Next
 
-1. G-5 toggle look (#48), PR #64.
-2. R2-3 media (#8): PR stays open for the owner's review.
+1. R2-3 media (#8): PR #65 waits for the owner's review.
 3. Follow-ups: #56 layout tests, #60 counter nits.
 
 Skipped: A-1 (#30, needs the owner at the touch monitor), A-6 (#35, waits for A-1),
@@ -74,6 +75,7 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Status `okWhen`: a number compares as a number, other values as text; no `okWhen` means non-zero is OK. `path` is a metric name (R2-2) | SPEC §4 does not define it | Change the model doc and `gauge.ts` |
 | 2026-11-25 | A tap on an ended countdown clears the pulse and resets; timer state is not kept across app runs (G-3) | Simplest; issue allows it | Change `timer.ts` |
 | 2026-11-25 | Volume: poll the default device every 500 ms instead of a COM callback (G-4) | Simpler; easy to swap | Implement `IAudioEndpointVolumeCallback` |
+| 2026-11-25 | Toggle colour: validator rule `toggle-color` only, no schema pattern (G-5) | A schema pattern gives a vague `oneOf` error; the rule gives a fix hint | Add the pattern |
 | 2026-11-25 | R2-3 media PR is not self-merged; it waits for the owner | The backlog marks R2-3 `review:owner` (no CODEOWNERS file exists) | Owner merges or says to self-merge |
 
 ## Test queue for the owner
@@ -105,3 +107,14 @@ A-5 (#34, runs after milestone M1).
    5. Switch the default output device. The tile must follow it.
    6. Turn off all output devices. The tile must show "no data", with mute greyed out.
    7. Check a wide tile and a tall tile.
+9. **G-5 toggle.** Run `npx vite --mode e2e` from `ui/` and open `?deck=toggle`. Tap the
+   toggle twice and check both looks.
+10. **R2-3 media (PR #65, review it line by line).** Add a `media` widget to a deck. From
+    `ui/`, run `npm run tauri dev`.
+    1. With no player running, the tile shows "Nothing playing" and all buttons are off.
+    2. Play a track in player A (for example a browser tab). Title, artist and cover show
+       within about 1 s.
+    3. Press previous, play/pause and next. Each acts on the player; the tile follows.
+    4. Do steps 2 and 3 again with player B (for example VLC). Start B last.
+    5. Close both players. The tile goes back to "Nothing playing".
+    6. With `controls: ["play_pause"]`, only that button shows.
