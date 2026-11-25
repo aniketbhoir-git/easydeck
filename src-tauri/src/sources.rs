@@ -2,7 +2,7 @@
 //! `source:<id>`. The payload is the `SourceValue` object: metric name to number or `null`,
 //! for example `{"cpu.load":12.5,"gpu.load":null}`.
 
-use easydeck_core::deck::Deck;
+use easydeck_core::deck::{Deck, Source as DeckSource};
 use std::sync::Mutex;
 use tauri::async_runtime::JoinHandle;
 use tauri::{AppHandle, Emitter};
@@ -14,11 +14,12 @@ pub struct SourceRunner {
 }
 
 impl SourceRunner {
-    /// Stops the running sources, then starts every source of `deck`. Call it again when a
-    /// new deck is loaded.
-    pub fn restart(&self, app: &AppHandle, deck: &Deck) {
+    /// Stops the running sources, then starts every source of `deck` that `allowed` accepts.
+    /// `allowed` is the approval gate: a source with an unapproved endpoint does not start
+    /// (SPEC §4.3). Call it again when a new deck is loaded or an approval changes.
+    pub fn restart(&self, app: &AppHandle, deck: &Deck, allowed: impl Fn(&DeckSource) -> bool) {
         self.stop();
-        let started = start_all(app, deck);
+        let started = start_all(app, deck, &allowed);
         *self.tasks.lock().unwrap_or_else(|e| e.into_inner()) = started;
     }
 
@@ -41,14 +42,20 @@ impl Drop for SourceRunner {
 }
 
 #[cfg(windows)]
-fn start_all(app: &AppHandle, deck: &Deck) -> Vec<JoinHandle<()>> {
-    use easydeck_core::deck::Source as DeckSource;
+fn start_all(
+    app: &AppHandle,
+    deck: &Deck,
+    allowed: &dyn Fn(&DeckSource) -> bool,
+) -> Vec<JoinHandle<()>> {
     use easydeck_core::sources::system_stats::SystemStatsSource;
     use easydeck_core::sources::Source;
     use easydeck_platform_windows::stats::WindowsStatsReader;
 
     let mut tasks = Vec::new();
     for (id, source) in &deck.sources {
+        if !allowed(source) {
+            continue;
+        }
         if let DeckSource::SystemStats {
             interval_ms,
             metrics,
@@ -77,6 +84,10 @@ fn start_all(app: &AppHandle, deck: &Deck) -> Vec<JoinHandle<()>> {
 
 /// The sources need Windows APIs; other platforms start none.
 #[cfg(not(windows))]
-fn start_all(_app: &AppHandle, _deck: &Deck) -> Vec<JoinHandle<()>> {
+fn start_all(
+    _app: &AppHandle,
+    _deck: &Deck,
+    _allowed: &dyn Fn(&DeckSource) -> bool,
+) -> Vec<JoinHandle<()>> {
     Vec::new()
 }
