@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "name": "Diff fixture",
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": { "columns": 4, "rows": 2 },
+      "widgets": [
+        {
+          "id": "clock",
+          "type": "text",
+          "kind": "clock",
+          "position": { "x": 0, "y": 0 }
+        },
+        {
+          "id": "notes",
+          "type": "launch",
+          "label": "Notes",
+          "action": { "type": "launch", "kind": "exe", "path": "%PROGRAMFILES%/Notes/notes.exe" },
+          "position": { "x": 1, "y": 0 }
+        },
+        {
+          "id": "boost",
+          "type": "macro",
+          "label": "Boost",
+          "action": { "type": "key_macro", "keys": ["ctrl+b"] },
+          "position": { "x": 2, "y": 0 }
+        }
+      ]
+    }
+  ]
+}
