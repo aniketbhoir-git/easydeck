@@ -425,6 +425,7 @@
       "properties": {
         "color": {
           "description": "Tile colour in this state: a hex colour, `#rgb` or `#rrggbb`.",
+          "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
           "type": "string"
         },
         "icon": {
@@ -709,6 +710,19 @@
           "required": [
             "type",
             "mode"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A volume slider and mute button for the default output device. The slider is\nhorizontal on a tile that is wider than it is tall, and vertical otherwise. It runs no\naction and is not a risk item. The tile shows the widget `label`.",
+          "properties": {
+            "type": {
+              "const": "volume",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
           ],
           "type": "object"
         },

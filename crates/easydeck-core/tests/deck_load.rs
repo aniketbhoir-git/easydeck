@@ -40,6 +40,12 @@ fn counter_fixture_loads() {
 }
 
 #[test]
+fn volume_fixture_loads() {
+    let deck = load("valid_volume.deck.json").expect("volume fixture should load");
+    assert_eq!(deck.pages[0].widgets.len(), 2);
+}
+
+#[test]
 fn timer_fixture_loads() {
     let deck = load("valid_timer.deck.json").expect("timer fixture should load");
     assert_eq!(deck.pages[0].widgets.len(), 2);
@@ -165,7 +171,12 @@ const INVALID: &[(&str, &str, &str)] = &[
     (
         "invalid_toggle_color.deck.json",
         "/pages/0/widgets/0",
-        "not a hex colour",
+        "not valid under any of the schemas",
+    ),
+    (
+        "invalid_volume_field.deck.json",
+        "/pages/0/widgets/0",
+        "step",
     ),
     ("invalid_not_json.deck.json", "", "not valid JSON"),
     ("does_not_exist.deck.json", "", "could not read"),

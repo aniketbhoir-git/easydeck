@@ -197,6 +197,7 @@ pub struct ToggleLook {
     pub icon: Option<String>,
     /// Tile colour in this state: a hex colour, `#rgb` or `#rrggbb`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(regex(pattern = "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"))]
     #[ts(optional)]
     pub color: Option<String>,
 }
@@ -366,6 +367,10 @@ pub enum WidgetKind {
         #[ts(optional, rename = "durationS")]
         duration_s: Option<u32>,
     },
+    /// A volume slider and mute button for the default output device. The slider is
+    /// horizontal on a tile that is wider than it is tall, and vertical otherwise. It runs no
+    /// action and is not a risk item. The tile shows the widget `label`.
+    Volume {},
     /// Controls the system media session (any player that reports to Windows). It has no
     /// provider and no volume control.
     Media {

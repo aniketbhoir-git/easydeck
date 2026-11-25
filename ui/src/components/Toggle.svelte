@@ -10,7 +10,7 @@
   let { widget }: { widget: ToggleData } = $props()
 
   const deckName = getContext<string | undefined>('deckName') ?? ''
-  const key = $derived(toggleKey(deckName, widget.id))
+  const key = toggleKey(deckName, widget.id)
   // The state lives on this device, never in the deck file. A toggle starts off.
   const load = (): ToggleState => parseStored(readState(key))
   let current = $state<ToggleState>(load())

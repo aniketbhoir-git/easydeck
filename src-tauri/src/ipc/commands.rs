@@ -13,6 +13,12 @@ pub fn load_deck_impl(state: &AppState) -> Deck {
 /// `hold` selects the long-press `holdAction` instead of `action`; a widget without one is
 /// not found for a hold.
 pub fn run_action_impl(state: &AppState, widget_id: &str, hold: bool) -> Result<(), AppError> {
+    if state.is_toggle(widget_id) {
+        return Err(AppError::Invalid {
+            message: "use toggle: on|off".into(),
+            detail: Some(widget_id.to_string()),
+        });
+    }
     let found = if hold {
         state.has_hold_action(widget_id)
     } else {
@@ -46,6 +52,30 @@ pub fn load_deck(state: tauri::State<'_, AppState>) -> Deck {
     load_deck_impl(&state)
 }
 
+/// Dispatches a `run_action` call: plain, hold, or toggle. `hold` with `toggle` is invalid.
+pub fn dispatch_impl(
+    state: &AppState,
+    widget_id: &str,
+    hold: Option<bool>,
+    toggle: Option<&str>,
+) -> Result<(), AppError> {
+    if toggle.is_some() && hold.unwrap_or(false) {
+        return Err(AppError::Invalid {
+            message: "hold cannot be combined with toggle".into(),
+            detail: Some(widget_id.to_string()),
+        });
+    }
+    match toggle {
+        None => run_action_impl(state, widget_id, hold.unwrap_or(false)),
+        Some("on") => run_toggle_impl(state, widget_id, true),
+        Some("off") => run_toggle_impl(state, widget_id, false),
+        Some(other) => Err(AppError::Invalid {
+            message: "toggle must be \"on\" or \"off\"".into(),
+            detail: Some(other.to_string()),
+        }),
+    }
+}
+
 #[tauri::command]
 pub fn run_action(
     state: tauri::State<'_, AppState>,
@@ -53,15 +83,7 @@ pub fn run_action(
     hold: Option<bool>,
     toggle: Option<String>,
 ) -> Result<(), AppError> {
-    match toggle.as_deref() {
-        None => run_action_impl(&state, &widget_id, hold.unwrap_or(false)),
-        Some("on") => run_toggle_impl(&state, &widget_id, true),
-        Some("off") => run_toggle_impl(&state, &widget_id, false),
-        Some(other) => Err(AppError::Invalid {
-            message: "toggle must be \"on\" or \"off\"".into(),
-            detail: Some(other.to_string()),
-        }),
-    }
+    dispatch_impl(&state, &widget_id, hold, toggle.as_deref())
 }
 
 #[cfg(test)]
@@ -118,6 +140,21 @@ mod tests {
         assert!(state.toggle_action("one", false).unwrap().is_none());
         assert!(run_toggle_impl(&state, "one", false).is_ok());
         assert!(state.toggle_action("one", true).unwrap().is_some());
+    }
+
+    #[test]
+    fn plain_run_action_on_toggle_is_invalid() {
+        let state = AppState::from_json(TOGGLE_DECK).unwrap();
+        let err = run_action_impl(&state, "both", false).unwrap_err();
+        assert_eq!(err.code(), "invalid");
+    }
+
+    #[test]
+    fn hold_with_toggle_is_invalid() {
+        let state = AppState::from_json(TOGGLE_DECK).unwrap();
+        let err = dispatch_impl(&state, "both", Some(true), Some("on")).unwrap_err();
+        assert_eq!(err.code(), "invalid");
+        assert!(dispatch_impl(&state, "both", None, Some("on")).is_ok());
     }
 
     #[test]

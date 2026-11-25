@@ -157,7 +157,7 @@ mode: TimerMode,
  * Countdown only: length in seconds, 1 to 86400. Required for a countdown. A
  * stopwatch must not set it.
  */
-durationS?: number, } | { "type": "media", 
+durationS?: number, } | { "type": "volume", } | { "type": "media", 
 /**
  * Controls to show. Each appears at most once.
  */

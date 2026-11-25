@@ -43,6 +43,16 @@ impl AppState {
             .any(|w| w.id == widget_id)
     }
 
+    /// True when a widget with this id is a toggle.
+    pub fn is_toggle(&self, widget_id: &str) -> bool {
+        use easydeck_core::deck::WidgetKind;
+        self.deck
+            .pages
+            .iter()
+            .flat_map(|p| &p.widgets)
+            .any(|w| w.id == widget_id && matches!(w.kind, WidgetKind::Toggle { .. }))
+    }
+
     /// True when a widget with this id has a long-press `holdAction`.
     pub fn has_hold_action(&self, widget_id: &str) -> bool {
         use easydeck_core::deck::WidgetKind;
