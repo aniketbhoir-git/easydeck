@@ -294,6 +294,28 @@ pub enum WidgetKind {
         #[ts(optional)]
         show_date: Option<bool>,
     },
+    /// A counter tile. A tap adds `step` to the value; a long press (held at least 600 ms)
+    /// resets it to `start`. The value is kept on this device between runs, never in the deck
+    /// file. It runs no action and is not a risk item. The tile shows the widget `label`.
+    Counter {
+        /// First value, and the value after a reset. Defaults to 0. When `min` or `max` is set,
+        /// `start` must lie between them.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, type = "number")]
+        start: Option<i64>,
+        /// Amount added by each tap. May be negative. Must not be 0. Defaults to 1.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, type = "number")]
+        step: Option<i64>,
+        /// Lowest value. The count stops here. Optional.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, type = "number")]
+        min: Option<i64>,
+        /// Highest value. The count stops here. Optional.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional, type = "number")]
+        max: Option<i64>,
+    },
     /// Controls the system media session (any player that reports to Windows). It has no
     /// provider and no volume control.
     Media {

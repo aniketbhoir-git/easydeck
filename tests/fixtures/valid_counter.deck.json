@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "name": "Counter deck",
+  "settings": {
+    "homePage": "home"
+  },
+  "pages": [
+    {
+      "id": "home",
+      "title": "Home",
+      "grid": {
+        "columns": 4,
+        "rows": 2
+      },
+      "widgets": [
+        {
+          "id": "water",
+          "type": "counter",
+          "label": "Water",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "laps",
+          "type": "counter",
+          "label": "Laps",
+          "start": 5,
+          "step": -1,
+          "min": 0,
+          "max": 10,
+          "position": {
+            "x": 1,
+            "y": 0
+          }
+        }
+      ]
+    }
+  ]
+}

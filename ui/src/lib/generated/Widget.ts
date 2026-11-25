@@ -115,7 +115,24 @@ seconds?: boolean,
  * Clock only. `true` shows the date in a smaller line under the time. Defaults to
  * `false`. The `date` kind always shows the date.
  */
-showDate?: boolean, } | { "type": "media", 
+showDate?: boolean, } | { "type": "counter", 
+/**
+ * First value, and the value after a reset. Defaults to 0. When `min` or `max` is set,
+ * `start` must lie between them.
+ */
+start?: number, 
+/**
+ * Amount added by each tap. May be negative. Must not be 0. Defaults to 1.
+ */
+step?: number, 
+/**
+ * Lowest value. The count stops here. Optional.
+ */
+min?: number, 
+/**
+ * Highest value. The count stops here. Optional.
+ */
+max?: number, } | { "type": "media", 
 /**
  * Controls to show. Each appears at most once.
  */
