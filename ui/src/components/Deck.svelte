@@ -13,6 +13,7 @@
     deck,
     editing = false,
     selectedId = null,
+    selectedPageId = null,
     onselect,
     onrequestedit,
     pageId = $bindable(null),
@@ -20,14 +21,19 @@
     deck: Deck
     editing?: boolean
     selectedId?: string | null
-    onselect?: (id: string) => void
+    selectedPageId?: string | null
+    onselect?: (id: string, pageId: string) => void
     onrequestedit?: () => void
     pageId?: string | null
   } = $props()
-  // Initial deck is enough: widgets read poll intervals once, when they mount.
-  provideSources(deck.sources)
+  // Getters, so a reloaded deck (new name or sources) reaches the widgets.
+  provideSources(() => deck.sources)
 
-  setContext('deckName', deck.name)
+  // Long hold on the background: long enough that a gamer's stray touch does not open the editor.
+  const EDIT_HOLD_MS = 1500
+  let holding = $state(false)
+
+  setContext('deckName', () => deck.name)
 
   const current = $derived(resolvePage(deck, pageId))
 
@@ -41,7 +47,21 @@
 
   // Background long press: the deck frame, the page switcher bar or the gaps of the grid.
   function holdBackground(node: HTMLElement) {
-    const detector = createPressDetector(() => ({ onHold: editing ? undefined : onrequestedit }))
+    const detector = createPressDetector(
+      () => ({
+        onHold: editing
+          ? undefined
+          : () => {
+              holding = false
+              onrequestedit?.()
+            },
+      }),
+      {
+        holdMs: EDIT_HOLD_MS,
+        onStart: () => (holding = !editing),
+        onEnd: () => (holding = false),
+      },
+    )
     const onBackground = (t: EventTarget | null) =>
       t instanceof HTMLElement && (t === node || t.matches('.switcher, .page'))
     const down = (e: PointerEvent) => {
@@ -66,6 +86,9 @@
 </script>
 
 <div class="deck" class:editing use:holdBackground>
+  {#if holding}
+    <div class="hold-cue" data-testid="edit-hold-cue" style:--hold-ms="{EDIT_HOLD_MS}ms"></div>
+  {/if}
   {#if deck.pages.length > 1}
     <nav class="switcher">
       {#each deck.pages as p (p.id)}
@@ -78,7 +101,9 @@
     </nav>
   {/if}
   {#if current}
-    <Page page={current} onpress={press} {editing} {selectedId} {onselect} />
+    <Page page={current} onpress={press} {editing}
+      selectedId={selectedPageId === null || selectedPageId === current.id ? selectedId : null}
+      onselect={(id) => onselect?.(id, current.id)} />
   {/if}
 </div>
 
@@ -90,6 +115,31 @@
     height: var(--deck-height, 100vh);
     box-sizing: border-box;
     padding: 12px;
+  }
+
+  .deck {
+    position: relative;
+  }
+
+  /* Fills left to right while the background is held; gone as soon as the press ends. */
+  .hold-cue {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
+    border-radius: 2px;
+    background: #7aa2f7;
+    pointer-events: none;
+    animation: hold-fill var(--hold-ms) linear forwards;
+  }
+
+  @keyframes hold-fill {
+    from {
+      width: 0;
+    }
+    to {
+      width: 100%;
+    }
   }
 
   .switcher {

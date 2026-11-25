@@ -53,9 +53,31 @@ pub fn validate_deck_impl(deck: &serde_json::Value) -> Vec<easydeck_core::deck::
     easydeck_core::deck::validate(deck)
 }
 
+/// Largest draft deck `validate_deck` accepts, as serialized JSON.
+pub const MAX_DRAFT_BYTES: usize = 1024 * 1024;
+
+/// Rejects a draft over `MAX_DRAFT_BYTES` before validating it.
+pub fn validate_deck_checked(
+    deck: &serde_json::Value,
+) -> Result<Vec<easydeck_core::deck::ValidationError>, AppError> {
+    let size = serde_json::to_vec(deck)
+        .map(|v| v.len())
+        .unwrap_or(usize::MAX);
+    if size > MAX_DRAFT_BYTES {
+        return Err(AppError::Invalid {
+            message: "deck is larger than 1 MiB".into(),
+            detail: Some(format!("{size} bytes")),
+        });
+    }
+    Ok(validate_deck_impl(deck))
+}
+
+// Async so the validation runs off the main thread.
 #[tauri::command]
-pub fn validate_deck(deck: serde_json::Value) -> Vec<easydeck_core::deck::ValidationError> {
-    validate_deck_impl(&deck)
+pub async fn validate_deck(
+    deck: serde_json::Value,
+) -> Result<Vec<easydeck_core::deck::ValidationError>, AppError> {
+    validate_deck_checked(&deck)
 }
 
 #[tauri::command]
@@ -120,6 +142,14 @@ mod tests {
         let mut bad = good.clone();
         bad["pages"][0]["widgets"][0]["bogus"] = serde_json::json!(1);
         assert!(!validate_deck_impl(&bad).is_empty());
+    }
+
+    #[test]
+    fn validate_deck_rejects_input_over_1_mib() {
+        let big = serde_json::json!({ "pad": "x".repeat(MAX_DRAFT_BYTES) });
+        let err = validate_deck_checked(&big).unwrap_err();
+        assert_eq!(err.code(), "invalid");
+        assert!(validate_deck_checked(&serde_json::json!({})).is_ok());
     }
 
     #[test]

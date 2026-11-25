@@ -9,11 +9,14 @@
   type ToggleData = Extract<Widget, { type: 'toggle' }>
   let { widget }: { widget: ToggleData } = $props()
 
-  const deckName = getContext<string | undefined>('deckName') ?? ''
-  const key = toggleKey(deckName, widget.id)
+  const deckName = getContext<(() => string) | undefined>('deckName')
+  const key = $derived(toggleKey(deckName?.() ?? '', widget.id))
   // The state lives on this device, never in the deck file. A toggle starts off.
-  const load = (): ToggleState => parseStored(readState(key))
-  let current = $state<ToggleState>(load())
+  let current = $state<ToggleState>('off')
+  // Runs on mount and whenever the key changes (renamed deck): reload from storage.
+  $effect.pre(() => {
+    current = parseStored(readState(key))
+  })
   let busy = false
   const view = $derived(lookFor(widget, current))
 
@@ -22,14 +25,17 @@
   export async function tap() {
     if (busy) return
     busy = true
+    // The key can change while the call is pending (renamed deck). Then the new key already
+    // holds its own state: do not write to it and do not revert over it.
+    const k = key
     const before = current
     const target = flip(before)
     current = target
     try {
       await runToggle(widget.id, target)
-      writeState(key, target)
+      if (key === k) writeState(k, target)
     } catch (err) {
-      current = before
+      if (key === k) current = before
       console.error('run_action failed', err)
     } finally {
       busy = false

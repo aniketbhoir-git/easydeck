@@ -34,7 +34,7 @@
     </dl>
     {#if own.length}
       <ul class="errors" data-testid="inspector-errors">
-        {#each own as e (e.path + e.rule + e.message)}
+        {#each own as e, i (i)}
           <li><strong>{e.message}</strong> <span>{e.fix}</span></li>
         {/each}
       </ul>
@@ -46,7 +46,7 @@
   {#if others.length}
     <h2>Other problems</h2>
     <ul class="errors" data-testid="deck-errors">
-      {#each others as e (e.path + e.rule + e.message)}
+      {#each others as e, i (i)}
         <li>
           <strong>{e.message}</strong>
           {#if e.path}<code>{e.path}</code>{/if}

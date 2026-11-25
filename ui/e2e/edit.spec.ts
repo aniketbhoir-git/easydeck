@@ -43,9 +43,18 @@ test('a long press on the deck background enters edit mode; on a tile it does no
   await page.mouse.up()
   await expect(page.getByTestId('editor-bar')).toHaveCount(0)
 
+  // Background: a 1000 ms hold is too short; the cue shows while held; 1500 ms enters.
   await page.mouse.move(5, 5)
   await page.mouse.down()
+  await expect(page.getByTestId('edit-hold-cue')).toBeVisible()
   await page.clock.runFor(1000)
+  await page.mouse.up()
+  await expect(page.getByTestId('edit-hold-cue')).toHaveCount(0)
+  await expect(page.getByTestId('editor-bar')).toHaveCount(0)
+
+  await page.mouse.move(5, 5)
+  await page.mouse.down()
+  await page.clock.runFor(1500)
   await page.mouse.up()
   await expect(page.getByTestId('editor-bar')).toBeVisible()
 })

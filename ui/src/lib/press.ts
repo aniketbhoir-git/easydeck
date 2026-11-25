@@ -26,7 +26,7 @@ export interface PressDetector {
 
 export function createPressDetector(
   getHandlers: () => PressHandlers,
-  hooks: { onStart?: () => void; onEnd?: () => void } = {},
+  hooks: { onStart?: () => void; onEnd?: () => void; holdMs?: number } = {},
 ): PressDetector {
   let id: number | null = null
   let startX = 0
@@ -60,7 +60,7 @@ export function createPressDetector(
         timer = undefined
         held = true
         getHandlers().onHold?.()
-      }, HOLD_MS)
+      }, hooks.holdMs ?? HOLD_MS)
     },
     move(e) {
       if (id !== e.pointerId) return

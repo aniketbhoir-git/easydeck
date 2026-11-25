@@ -66,6 +66,8 @@ export class Draft {
   deck = $state<Deck>() as Deck
   errors = $state<ValidationError[]>([])
   selectedId = $state<string | null>(null)
+  // Widget ids are unique per page, not per deck (core validate rule "duplicate-id").
+  selectedPageId = $state<string | null>(null)
   /** A short message about the last action, for example "This page is full". */
   notice = $state<string | null>(null)
   validating = $state(false)
@@ -90,13 +92,15 @@ export class Draft {
     return this.dirty && !this.validating && this.errors.length === 0
   }
 
-  select(id: string | null) {
+  select(id: string | null, pageId: string | null = null) {
     this.selectedId = id
+    this.selectedPageId = pageId
   }
 
   /** The widget `selectedId` names, with its page, or undefined. */
   get selected(): { widget: Widget; pageIndex: number; widgetIndex: number } | undefined {
     for (let pageIndex = 0; pageIndex < this.deck.pages.length; pageIndex++) {
+      if (this.selectedPageId !== null && this.deck.pages[pageIndex].id !== this.selectedPageId) continue
       const widgetIndex = this.deck.pages[pageIndex].widgets.findIndex((w) => w.id === this.selectedId)
       if (widgetIndex >= 0)
         return { widget: this.deck.pages[pageIndex].widgets[widgetIndex], pageIndex, widgetIndex }
@@ -120,6 +124,7 @@ export class Draft {
     page.widgets.push(widget)
     this.notice = null
     this.selectedId = widget.id
+    this.selectedPageId = page.id
     void this.revalidate()
     return widget.id
   }
@@ -128,6 +133,7 @@ export class Draft {
   discard() {
     this.deck = JSON.parse(this.#base) as Deck
     this.selectedId = null
+    this.selectedPageId = null
     this.notice = null
     void this.revalidate()
   }

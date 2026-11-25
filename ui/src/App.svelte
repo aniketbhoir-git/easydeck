@@ -36,7 +36,8 @@
       deck={draft ? draft.deck : deck}
       editing={!!draft}
       selectedId={draft?.selectedId ?? null}
-      onselect={(id) => draft?.select(id)}
+      selectedPageId={draft?.selectedPageId ?? null}
+      onselect={(id, pid) => draft?.select(id, pid)}
       onrequestedit={edit}
       bind:pageId
     />
