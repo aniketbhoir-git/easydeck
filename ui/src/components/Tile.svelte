@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { PlacedWidget } from '../lib/api'
   import { press } from '../lib/press'
+  import GaugeWidget from './GaugeWidget.svelte'
+  import StatusWidget from './StatusWidget.svelte'
   import Counter from './Counter.svelte'
   import TextWidget from './TextWidget.svelte'
 
@@ -38,13 +40,17 @@
 >
   {#if widget.type === 'text'}
     <TextWidget {widget} />
+  {:else if widget.type === 'gauge'}
+    <GaugeWidget {widget} />
+  {:else if widget.type === 'status'}
+    <StatusWidget {widget} />
   {:else if widget.type === 'counter'}
     <Counter {widget} bind:this={counter} />
   {:else if widget.icon}
     <span class="icon" aria-hidden="true">{widget.icon}</span>
   {/if}
   {#if widget.label}
-    <span class="label">{widget.label}</span>
+    <span class="label" aria-hidden={widget.type === 'gauge' || widget.type === 'status' ? 'true' : undefined}>{widget.label}</span>
   {/if}
 </button>
 
