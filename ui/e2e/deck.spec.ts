@@ -2,6 +2,22 @@ import { expect, test, type Page } from '@playwright/test'
 
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __ipcCalls: { cmd: string; args: unknown }[] }).__ipcCalls)
 
+const emitSource = (page: Page, id: string, payload: Record<string, number | null>) =>
+  page.evaluate(([i, p]) => (window as unknown as { __emitSource: (i: string, p: unknown) => Promise<void> }).__emitSource(i as string, p), [id, payload] as const)
+
+// The listener registers asynchronously, so an early emit can be lost: emit again until `check` holds.
+async function emitUntil(page: Page, id: string, payload: Record<string, number | null>, check: () => Promise<void>) {
+  await expect.poll(async () => {
+    await emitSource(page, id, payload)
+    try {
+      await check()
+      return true
+    } catch {
+      return false
+    }
+  }).toBe(true)
+}
+
 // Frozen so the clock tile and the screenshots are stable.
 export const FIXED_TIME = new Date('2026-11-25T14:07:00Z')
 
@@ -14,7 +30,7 @@ test.beforeEach(async ({ page }) => {
 test('the fixture deck (ui/src/lib/mock-ipc.ts) renders its home page', async ({ page }) => {
   await expect(page.locator('[data-widget-id]')).toHaveCount(4)
   for (const label of ['CPU', 'Game', 'Notes']) {
-    await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: new RegExp(`^${label}( |$)`) })).toBeVisible()
   }
   await expect(page.getByRole('button', { name: 'In game', exact: true })).toBeVisible()
 })
@@ -87,4 +103,21 @@ test('a deck without positions renders in reading order', async ({ page }) => {
   expect(boxes[4].x).toBeCloseTo(boxes[1].x, 0)
   expect(boxes[3].y).toBeGreaterThan(boxes[0].y)
   expect(boxes[2].y).toBeCloseTo(boxes[0].y, 0)
+})
+
+test('the CPU gauge shows no data until the source speaks, then the value', async ({ page }) => {
+  const gauge = page.locator('[data-widget-id="cpu"]').getByTestId('gauge')
+  await expect(gauge).toHaveAttribute('data-state', 'nodata')
+  await emitUntil(page, 'stats', { 'cpu.load': 37, 'gpu.load': null }, () =>
+    expect(gauge.getByTestId('gauge-value')).toContainText('37', { timeout: 500 }),
+  )
+  await emitSource(page, 'stats', { 'cpu.load': null })
+  await expect(gauge).toHaveAttribute('data-state', 'nodata')
+})
+
+test('screenshot: gauge with a fixed value', async ({ page }) => {
+  await emitUntil(page, 'stats', { 'cpu.load': 62 }, () =>
+    expect(page.locator('[data-widget-id="cpu"]').getByTestId('gauge-value')).toContainText('62', { timeout: 500 }),
+  )
+  await expect(page).toHaveScreenshot('home-gauge.png', { animations: 'disabled' })
 })

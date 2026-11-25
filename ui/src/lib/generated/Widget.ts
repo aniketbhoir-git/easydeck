@@ -68,7 +68,8 @@ offAction?: Action, } | { "type": "gauge",
  */
 source: string, 
 /**
- * Field of the source value, for example `cpu.load` or `gpu.temp`.
+ * Metric name: a key of the source's flat payload, for example `cpu.load` or
+ * `gpu.temp`. It is not a JSON path. A missing or null value shows "no data".
  */
 metric: string, 
 /**
@@ -88,11 +89,14 @@ unit?: string, } | { "type": "status",
  */
 source: string, 
 /**
- * JSON path into the source value.
+ * Metric name: a key of the source's flat payload, for example `cpu.load`. It is not
+ * a JSON path. A missing or null value shows "no data".
  */
 path?: string, 
 /**
- * Value that counts as OK. Anything else shows as a problem.
+ * Value that counts as OK. Anything else shows as a problem. A numeric `okWhen`
+ * compares as a number, so `1` matches `1.0`. Any other `okWhen` compares as text.
+ * When omitted, any non-zero value is OK.
  */
 okWhen?: string, } | { "type": "text", 
 /**

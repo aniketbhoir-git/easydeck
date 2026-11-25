@@ -238,7 +238,8 @@ pub enum WidgetKind {
         /// Id of a source in `sources`.
         #[schemars(regex(pattern = "^[a-z0-9][a-z0-9_-]{0,63}$"))]
         source: String,
-        /// Field of the source value, for example `cpu.load` or `gpu.temp`.
+        /// Metric name: a key of the source's flat payload, for example `cpu.load` or
+        /// `gpu.temp`. It is not a JSON path. A missing or null value shows "no data".
         metric: String,
         /// Value at the empty end. Defaults to 0.
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -259,11 +260,14 @@ pub enum WidgetKind {
         /// Id of a source in `sources`.
         #[schemars(regex(pattern = "^[a-z0-9][a-z0-9_-]{0,63}$"))]
         source: String,
-        /// JSON path into the source value.
+        /// Metric name: a key of the source's flat payload, for example `cpu.load`. It is not
+        /// a JSON path. A missing or null value shows "no data".
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[ts(optional)]
         path: Option<String>,
-        /// Value that counts as OK. Anything else shows as a problem.
+        /// Value that counts as OK. Anything else shows as a problem. A numeric `okWhen`
+        /// compares as a number, so `1` matches `1.0`. Any other `okWhen` compares as text.
+        /// When omitted, any non-zero value is OK.
         #[serde(rename = "okWhen", default, skip_serializing_if = "Option::is_none")]
         #[ts(optional, rename = "okWhen")]
         ok_when: Option<String>,
