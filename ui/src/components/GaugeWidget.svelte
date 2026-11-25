@@ -2,12 +2,13 @@
   import type { Widget } from '../lib/api'
   import { formatGaugeValue, gaugeAngle, metricValue, GAUGE_SWEEP_DEG } from '../lib/gauge'
   import { sourceStore } from '../lib/source-store'
-  import { sourceIntervalMs } from '../lib/source-interval'
+  import { useSourceInterval } from '../lib/source-interval'
 
   type GaugeData = Extract<Widget, { type: 'gauge' }>
   let { widget }: { widget: GaugeData } = $props()
 
-  const reading = $derived(sourceStore(widget.source, sourceIntervalMs(widget.source)))
+  const intervalMs = useSourceInterval()
+  const reading = $derived(sourceStore(widget.source, intervalMs(widget.source)))
   const value = $derived(metricValue($reading, widget.metric))
   const angle = $derived(
     value === null ? 0 : gaugeAngle(value, widget.min ?? 0, widget.max ?? 100),

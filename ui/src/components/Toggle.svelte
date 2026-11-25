@@ -9,11 +9,14 @@
   type ToggleData = Extract<Widget, { type: 'toggle' }>
   let { widget }: { widget: ToggleData } = $props()
 
-  const deckName = getContext<string | undefined>('deckName') ?? ''
-  const key = toggleKey(deckName, widget.id)
+  const deckName = getContext<(() => string) | undefined>('deckName')
+  const key = $derived(toggleKey(deckName?.() ?? '', widget.id))
   // The state lives on this device, never in the deck file. A toggle starts off.
-  const load = (): ToggleState => parseStored(readState(key))
-  let current = $state<ToggleState>(load())
+  let current = $state<ToggleState>('off')
+  // Runs on mount and whenever the key changes (renamed deck): reload from storage.
+  $effect.pre(() => {
+    current = parseStored(readState(key))
+  })
   let busy = false
   const view = $derived(lookFor(widget, current))
 
