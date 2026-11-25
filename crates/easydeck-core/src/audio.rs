@@ -91,10 +91,7 @@ impl FakeAudioEndpoint {
         }
     }
 
-    fn with<T>(
-        &self,
-        f: impl FnOnce(&mut VolumeState) -> T,
-    ) -> Result<T, AudioError> {
+    fn with<T>(&self, f: impl FnOnce(&mut VolumeState) -> T) -> Result<T, AudioError> {
         let mut guard = self.state.lock().unwrap_or_else(|e| e.into_inner());
         match &mut *guard {
             Ok(s) => Ok(f(s)),
@@ -124,7 +121,13 @@ mod tests {
         let e = FakeAudioEndpoint::new(30, false);
         e.set_level(75).unwrap();
         e.set_muted(true).unwrap();
-        assert_eq!(e.get().unwrap(), VolumeState { level: 75, muted: true });
+        assert_eq!(
+            e.get().unwrap(),
+            VolumeState {
+                level: 75,
+                muted: true
+            }
+        );
     }
 
     #[test]
@@ -163,13 +166,19 @@ mod tests {
         let mut last = None;
         assert_eq!(
             poll_change(&e, &mut last).unwrap(),
-            Some(VolumeState { level: 40, muted: false })
+            Some(VolumeState {
+                level: 40,
+                muted: false
+            })
         );
         assert_eq!(poll_change(&e, &mut last).unwrap(), None);
         e.set_muted(true).unwrap(); // an outside change
         assert_eq!(
             poll_change(&e, &mut last).unwrap(),
-            Some(VolumeState { level: 40, muted: true })
+            Some(VolumeState {
+                level: 40,
+                muted: true
+            })
         );
         assert_eq!(poll_change(&e, &mut last).unwrap(), None);
     }
