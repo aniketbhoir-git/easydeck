@@ -44,8 +44,9 @@ CLAUDE.md git rule "Do not merge; the maintainer reviews and merges".
 
 ## Next
 
-1. R2-3 media (#8): PR #65 waits for the owner's review.
-3. Follow-ups: #56 layout tests, #60 counter nits.
+1. R2-3 media (#8, GitHub title "Spotify widget"; the backlog changed it to the system media
+   session): PR #65 waits for the owner's review.
+2. Follow-ups: #56 layout tests, #60 counter nits.
 
 Skipped: A-1 (#30, needs the owner at the touch monitor), A-6 (#35, waits for A-1),
 A-5 (#34, runs after milestone M1).
@@ -65,13 +66,11 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Screenshot compare is strict (`maxDiffPixels: 0`) | CI pins the Playwright container | Loosen to `maxDiffPixels: 20` if it flakes |
 | 2026-11-25 | Text widget: `format` removed; `hour12`, `seconds`, `showDate` added (G-1) | An unused field misleads LLM deck writers | Add `format` back with a parser |
 | 2026-11-25 | Gadget build order follows the research list (clock, counter, timer, gauge, volume, media, toggle look, long press) | The research ranks these as basic and low risk | Reorder the issues |
-
 | 2026-11-25 | `run_action` takes `{ widgetId, hold: true }` for a long press; a hold on a tile without `holdAction` is a tap (G-6) | A slow touch must not be lost | Change `press.ts` |
 | 2026-11-25 | The approval step must check the action that runs (`holdAction` when `hold` is true; `onAction` or `offAction` for a toggle). It hooks `dispatch_impl`, the one entry of `run_action`. Text, gauge and status tiles still reach `run_action` on a tap; the action step must decide per widget kind | Review notes on G-6 and G-5 | — (rule for the approval issue) |
 | 2026-11-25 | R2-1 reads CPU and RAM with windows-rs (`GetSystemTimes`, `GlobalMemoryStatusEx`), not `sysinfo` | `sysinfo` is not in SPEC §2; a new dependency needs the owner | Owner approves `sysinfo` |
 | 2026-11-25 | GPU load from `nvidia-smi` (hidden window, 2 s timeout, off after one failure); `cpu.temp` is always `null` | No driver-free source for CPU temperature | Add a sensor source later |
 | 2026-11-25 | Counter value kept in WebView `localStorage`, key `easydeck:widget:<deck>:<widget>` (G-2) | Never in the deck file; simplest store | Move to an app-side state file |
-
 | 2026-11-25 | Status `okWhen`: a number compares as a number, other values as text; no `okWhen` means non-zero is OK. `path` is a metric name (R2-2) | SPEC §4 does not define it | Change the model doc and `gauge.ts` |
 | 2026-11-25 | A tap on an ended countdown clears the pulse and resets; timer state is not kept across app runs (G-3) | Simplest; issue allows it | Change `timer.ts` |
 | 2026-11-25 | Volume: poll the default device every 500 ms instead of a COM callback (G-4) | Simpler; easy to swap | Implement `IAudioEndpointVolumeCallback` |
