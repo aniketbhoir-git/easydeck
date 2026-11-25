@@ -3,4 +3,6 @@
 #[cfg(windows)]
 pub mod audio;
 #[cfg(windows)]
+pub mod media;
+#[cfg(windows)]
 pub mod stats;

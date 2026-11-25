@@ -11,6 +11,8 @@ declare global {
     __emitSource: (id: string, payload: Record<string, number | null>) => Promise<void>
     /** Test helper: pushes a volume event, as the app does when Windows changes the volume. */
     __emitVolume: (payload: { level: number; muted: boolean }) => Promise<void>
+    /** Test helper: pushes a media event, as the app does when the current track changes. */
+    __emitMedia: (payload: Record<string, unknown>) => Promise<void>
   }
 }
 
@@ -216,6 +218,41 @@ export const volumeDeck: Deck = {
   ],
 }
 
+// A deck with a full media tile and one that lists only play/pause. Open the UI with
+// `?deck=media`; `?media=none` mocks "no player". A separate fixture, as for volume.
+export const mediaDeck: Deck = {
+  version: 1,
+  name: 'Media deck',
+  sources: {},
+  pages: [
+    {
+      id: 'home',
+      title: 'Home',
+      grid: { columns: 4, rows: 2 },
+      widgets: [
+        { id: 'media-all', type: 'media', position: { x: 0, y: 0, w: 2, h: 1 } },
+        { id: 'media-one', type: 'media', controls: ['play_pause'], position: { x: 2, y: 0, w: 2, h: 1 } },
+      ],
+    },
+  ],
+}
+
+// A solid-colour 8x8 PNG made for the tests (no third-party art).
+const THUMB = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGOoWvQdK2IYWhIAv4WEwWN3ssYAAAAASUVORK5CYII='
+
+// In-memory media session for the mock. `?media=none` means no player, `?media=off` makes the
+// media commands fail. Play/pause and next change it and push the event, as the poller does.
+const media: Record<string, unknown> = {
+  title: 'Test Track One',
+  artist: 'Test Artist',
+  status: 'playing',
+  canPlayPause: true,
+  canNext: true,
+  canPrevious: true,
+  thumbnail: THUMB,
+}
+const NO_PLAYER = { title: '', artist: '', status: 'none', canPlayPause: false, canNext: false, canPrevious: false }
+
 // In-memory system volume for the mock. `?volume=off` makes the volume commands fail.
 const volume = { level: 40, muted: false }
 
@@ -226,6 +263,10 @@ export function installMockIpc(): void {
     Object.assign(volume, payload)
     return emit('volume', payload)
   }
+  window.__emitMedia = (payload) => {
+    Object.assign(media, payload)
+    return emit('media', { ...media })
+  }
   mockIPC((cmd, args) => {
     window.__ipcCalls.push({ cmd, args })
     if (cmd === 'load_deck') {
@@ -235,6 +276,7 @@ export function installMockIpc(): void {
       if (which === 'timer') return timerDeck
       if (which === 'toggle') return toggleDeck
       if (which === 'volume') return volumeDeck
+      if (which === 'media') return mediaDeck
       return fixtureDeck
     }
     if (cmd === 'run_action') {
@@ -249,6 +291,20 @@ export function installMockIpc(): void {
       if (cmd === 'volume_set') volume.level = a.level as number
       if (cmd === 'volume_mute') volume.muted = a.muted as boolean
       return cmd === 'volume_get' ? { ...volume } : undefined
+    }
+    if (cmd === 'media_get' || cmd === 'media_command') {
+      const mode = new URLSearchParams(location.search).get('media')
+      if (mode === 'off') throw new Error('no session manager')
+      if (mode === 'none') {
+        if (cmd === 'media_command') throw new Error('no player is running')
+        return NO_PLAYER
+      }
+      if (cmd === 'media_get') return { ...media }
+      const c = (args as { command: string }).command
+      if (c === 'play_pause') media.status = media.status === 'playing' ? 'paused' : 'playing'
+      if (c === 'next') media.title = 'Test Track Two'
+      void emit('media', { ...media })
+      return undefined
     }
     throw new Error(`unmocked command: ${cmd}`)
   }, { shouldMockEvents: true })

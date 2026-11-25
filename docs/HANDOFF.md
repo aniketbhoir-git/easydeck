@@ -76,6 +76,7 @@ A-5 (#34, runs after milestone M1).
 | 2026-11-25 | Volume: poll the default device every 500 ms instead of a COM callback (G-4) | Simpler; easy to swap | Implement `IAudioEndpointVolumeCallback` |
 | 2026-11-25 | Toggle colour: validator rule `toggle-color` only, no schema pattern (G-5) | A schema pattern gives a vague `oneOf` error; the rule gives a fix hint | Add the pattern |
 | 2026-11-25 | R2-3 media PR is not self-merged; it waits for the owner | The backlog marks R2-3 `review:owner` (no CODEOWNERS file exists) | Owner merges or says to self-merge |
+| 2026-11-25 | Media tile (R2-3): poll every 1000 ms and emit `media` only on change; the thumbnail is read once per track change, capped at 256 KB, and sent inside the event as a `data:image` URL; base64 is a small std-only encoder in core | Same pattern as volume; the SPEC §2 list has no base64 crate | Switch to the session manager's change events, or add a base64 crate after asking |
 
 ## Test queue for the owner
 

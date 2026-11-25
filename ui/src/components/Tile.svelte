@@ -8,6 +8,7 @@
   import Toggle from './Toggle.svelte'
   import TextWidget from './TextWidget.svelte'
   import Volume from './Volume.svelte'
+  import Media from './Media.svelte'
 
   // `hold` is true for a long press: the app then runs the widget's holdAction.
   let {
@@ -41,6 +42,17 @@
   >
     <Volume {widget} w={pos.w ?? 1} h={pos.h ?? 1} />
     {#if widget.label}<span class="label">{widget.label}</span>{/if}
+  </div>
+{:else if widget.type === 'media'}
+  <!-- A media tile handles its own pointer events (its buttons), so it is a div, not the
+       tap/hold button, and makes no run_action call. -->
+  <div
+    class="tile volume-tile"
+    data-widget-id={widget.id}
+    style:grid-column="{pos.x + 1} / span {pos.w ?? 1}"
+    style:grid-row="{pos.y + 1} / span {pos.h ?? 1}"
+  >
+    <Media {widget} />
   </div>
 {:else}
 <button
@@ -130,7 +142,8 @@
     touch-action: none;
   }
 
-  .volume-tile :global(.volume) {
+  .volume-tile :global(.volume),
+  .volume-tile :global(.media) {
     flex: 1;
   }
 
