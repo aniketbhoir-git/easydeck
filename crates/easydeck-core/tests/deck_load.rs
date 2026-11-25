@@ -171,7 +171,7 @@ const INVALID: &[(&str, &str, &str)] = &[
     (
         "invalid_toggle_color.deck.json",
         "/pages/0/widgets/0",
-        "not valid under any of the schemas",
+        "not a hex colour",
     ),
     (
         "invalid_volume_field.deck.json",

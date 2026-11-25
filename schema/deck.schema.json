@@ -425,7 +425,6 @@
       "properties": {
         "color": {
           "description": "Tile colour in this state: a hex colour, `#rgb` or `#rrggbb`.",
-          "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
           "type": "string"
         },
         "icon": {

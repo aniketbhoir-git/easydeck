@@ -5,8 +5,8 @@ expression: errors
 [
   {
     "path": "/pages/0/widgets/0",
-    "rule": "schema/oneOf",
-    "message": "{\"icon\":\"🎤\",\"id\":\"mic\",\"label\":\"Mic\",\"off\":{\"color\":\"#333\",\"label\":\"Muted\"},\"offAction\":{\"keys\":[\"ctrl+m\"],\"type\":\"key_macro\"},\"on\":{\"color\":\"red\",\"icon\":\"🔴\",\"label\":\"Live\"},\"onAction\":{\"keys\":[\"ctrl+m\"],\"type\":\"key_macro\"},\"position\":{\"x\":0,\"y\":0},\"type\":\"toggle\"} is not valid under any of the schemas listed in the 'oneOf' keyword",
-    "fix": "make the object match one variant of the schema; check its `type` or `kind` field and the fields that variant needs"
+    "rule": "toggle-color",
+    "message": "toggle \"mic\" has on.color \"red\", which is not a hex colour",
+    "fix": "set on.color to #rgb or #rrggbb, for example \"#2ecc71\""
   }
 ]

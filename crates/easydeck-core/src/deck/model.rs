@@ -197,7 +197,6 @@ pub struct ToggleLook {
     pub icon: Option<String>,
     /// Tile colour in this state: a hex colour, `#rgb` or `#rrggbb`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(regex(pattern = "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"))]
     #[ts(optional)]
     pub color: Option<String>,
 }
