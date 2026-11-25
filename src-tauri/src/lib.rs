@@ -1,5 +1,6 @@
 pub mod error;
 pub mod ipc;
+pub mod media;
 pub mod sources;
 pub mod volume;
 
@@ -11,12 +12,15 @@ pub fn run() {
         .manage(state)
         .manage(sources::SourceRunner::default())
         .manage(volume::VolumeService::system())
+        .manage(media::MediaService::system())
         .setup(|app| {
             let handle = app.handle().clone();
             let state = app.state::<ipc::state::AppState>();
             app.state::<sources::SourceRunner>()
                 .restart(&handle, state.deck());
             app.state::<volume::VolumeService>()
+                .start_poller(handle.clone(), state.deck());
+            app.state::<media::MediaService>()
                 .start_poller(handle, state.deck());
             Ok(())
         })
@@ -25,7 +29,9 @@ pub fn run() {
             ipc::commands::run_action,
             volume::volume_get,
             volume::volume_set,
-            volume::volume_mute
+            volume::volume_mute,
+            media::media_get,
+            media::media_command
         ])
         .build(tauri::generate_context!())
         .expect("error while building EasyDeck")
@@ -33,6 +39,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 app.state::<sources::SourceRunner>().stop();
                 app.state::<volume::VolumeService>().stop();
+                app.state::<media::MediaService>().stop();
             }
         });
 }
