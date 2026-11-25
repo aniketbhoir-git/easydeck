@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/easydeck-core", "crates/easydeck-cli", "src-tauri", "xtask"]
+members = ["crates/easydeck-core", "crates/easydeck-cli", "crates/easydeck-platform-windows", "src-tauri", "xtask"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -10,4 +10,6 @@ jsonschema = { version = "0.61.1", default-features = false }
 schemars = "=1.2.3"
 ts-rs = "=12.0.1"
 insta = { version = "=1.49.0", features = ["json"] }
+tokio = "=1.54.1"
+windows = { version = "=0.62.2", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_System_SystemInformation"] }
 proptest = "=1.12.0"

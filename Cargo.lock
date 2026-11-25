@@ -814,6 +814,7 @@ name = "easydeck-app"
 version = "0.1.0"
 dependencies = [
  "easydeck-core",
+ "easydeck-platform-windows",
  "serde",
  "serde_json",
  "tauri",
@@ -839,7 +840,16 @@ dependencies = [
  "schemars 1.2.3",
  "serde",
  "serde_json",
+ "tokio",
  "ts-rs",
+]
+
+[[package]]
+name = "easydeck-platform-windows"
+version = "0.1.0"
+dependencies = [
+ "easydeck-core",
+ "windows",
 ]
 
 [[package]]
@@ -3996,7 +4006,19 @@ dependencies = [
  "mio",
  "pin-project-lite",
  "socket2",
+ "tokio-macros",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "2.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.10",
 ]
 
 [[package]]

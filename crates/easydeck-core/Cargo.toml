@@ -11,7 +11,9 @@ serde_json = { workspace = true }
 jsonschema = { workspace = true }
 schemars = { workspace = true }
 ts-rs = { workspace = true }
+tokio = { workspace = true, features = ["rt", "sync", "time"] }
 
 [dev-dependencies]
 insta = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros", "test-util"] }
 proptest = { workspace = true }
