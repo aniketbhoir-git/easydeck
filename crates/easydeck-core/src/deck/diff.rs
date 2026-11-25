@@ -458,7 +458,7 @@ fn action_text(v: &Value) -> String {
 /// allow-list: a browser or Windows fetches many forms (`//host/a.png`, `https:host/a.png`,
 /// `https:\\evil.host\a.png`, `\\host\share\a.png`, `file://host/a.png`, `ftp://...`, any case),
 /// so a deny-list on `http(s)://` is not safe. An icon is inert only if it is
-/// (a) a pack path: `icons/` plus `[A-Za-z0-9_./-]`, with no `..` segment, or
+/// (a) a pack path: `icons/` plus `[A-Za-z0-9_./-]`, with no empty, `.` or `..` segment, or
 /// (b) plain glyph text (an emoji or a short word) with none of `/ \ : . % @`.
 /// Every other value counts as a network endpoint. A validator rule for icon forms
 /// belongs to A-8.
@@ -468,7 +468,9 @@ fn icon_is_inert(icon: &str) -> bool {
             && rest
                 .chars()
                 .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '/' | '-'))
-            && !rest.split('/').any(|seg| seg == "..");
+            && !rest
+                .split('/')
+                .any(|seg| seg.is_empty() || seg == "." || seg == "..");
     }
     !icon
         .chars()

@@ -10,7 +10,8 @@ export type ToggleLook = {
  */
 label?: string, 
 /**
- * Icon in this state: a path inside the pack (`icons/...`) or an https URL.
+ * Icon in this state: a path inside the pack (`icons/...`), plain glyph text, or an https
+ * URL. A remote icon is a network endpoint: a risk item that needs approval (SPEC §4.3).
  */
 icon?: string, 
 /**
