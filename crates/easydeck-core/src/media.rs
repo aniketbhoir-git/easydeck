@@ -2,7 +2,8 @@
 //! logic behind a trait: the Windows code lives in `easydeck-platform-windows`, and tests use
 //! [`FakeMediaSession`]. No account, no token, no network call.
 
-use serde::{Deserialize, Serialize};
+use crate::deck::MediaControl;
+use serde::Serialize;
 use std::fmt;
 use std::sync::Mutex;
 
@@ -48,14 +49,6 @@ impl MediaState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MediaCommand {
-    PlayPause,
-    Next,
-    Previous,
-}
-
 /// The session could not be read or the command was not sent.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MediaError(pub String);
@@ -72,7 +65,7 @@ impl std::error::Error for MediaError {}
 pub trait MediaSession: Send + Sync {
     /// The state of the current session; [`MediaState::none`] when no player runs.
     fn get(&self) -> Result<MediaState, MediaError>;
-    fn send(&self, command: MediaCommand) -> Result<(), MediaError>;
+    fn send(&self, command: MediaControl) -> Result<(), MediaError>;
 }
 
 /// Poll helper: reads the session and returns the state only when it differs from `last`.
@@ -122,25 +115,38 @@ pub fn base64_encode(bytes: &[u8]) -> String {
     out
 }
 
-/// A `data:` URL for a thumbnail, or `None` when the type is not an image or the image is
-/// empty or larger than [`MAX_THUMBNAIL_BYTES`].
-pub fn thumbnail_data_url(content_type: &str, bytes: &[u8]) -> Option<String> {
-    let ct = content_type.trim().to_ascii_lowercase();
-    let ok_type = ct.starts_with("image/")
-        && ct.len() > 6
-        && ct[6..]
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '.' || c == '-');
-    if !ok_type || bytes.is_empty() || bytes.len() > MAX_THUMBNAIL_BYTES {
+/// The image type from the file's first bytes (png, jpeg, gif, webp, bmp), or `None`.
+pub fn sniff_image_type(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        Some("image/png")
+    } else if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
+        Some("image/jpeg")
+    } else if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+        Some("image/gif")
+    } else if bytes.len() >= 12 && &bytes[..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        Some("image/webp")
+    } else if bytes.starts_with(b"BM") {
+        Some("image/bmp")
+    } else {
+        None
+    }
+}
+
+/// A `data:` URL for a thumbnail. The type comes from the bytes, not from what the player
+/// claims; `None` when the bytes are not one of the five image types, or the image is empty
+/// or larger than [`MAX_THUMBNAIL_BYTES`].
+pub fn thumbnail_data_url(bytes: &[u8]) -> Option<String> {
+    if bytes.len() > MAX_THUMBNAIL_BYTES {
         return None;
     }
+    let ct = sniff_image_type(bytes)?;
     Some(format!("data:{ct};base64,{}", base64_encode(bytes)))
 }
 
 /// An in-memory session for tests. It never touches a real player.
 pub struct FakeMediaSession {
     state: Mutex<Result<MediaState, MediaError>>,
-    sent: Mutex<Vec<MediaCommand>>,
+    sent: Mutex<Vec<MediaControl>>,
 }
 
 impl FakeMediaSession {
@@ -169,7 +175,7 @@ impl FakeMediaSession {
     }
 
     /// The commands sent so far, in order.
-    pub fn sent(&self) -> Vec<MediaCommand> {
+    pub fn sent(&self) -> Vec<MediaControl> {
         self.sent.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 }
@@ -179,12 +185,12 @@ impl MediaSession for FakeMediaSession {
         self.state.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
-    fn send(&self, command: MediaCommand) -> Result<(), MediaError> {
+    fn send(&self, command: MediaControl) -> Result<(), MediaError> {
         let state = self.get()?;
         let allowed = match command {
-            MediaCommand::PlayPause => state.can_play_pause,
-            MediaCommand::Next => state.can_next,
-            MediaCommand::Previous => state.can_previous,
+            MediaControl::PlayPause => state.can_play_pause,
+            MediaControl::Next => state.can_next,
+            MediaControl::Previous => state.can_previous,
         };
         if !allowed {
             return Err(MediaError("the session cannot do that".into()));
@@ -229,17 +235,44 @@ mod tests {
         assert_eq!(base64_encode(&[0xfb, 0xff, 0xfe]), "+//+");
     }
 
+    const PNG: &[u8] = b"\x89PNG\r\n\x1a\nrest";
+
     #[test]
-    fn thumbnail_url_accepts_small_images_only() {
+    fn sniff_recognises_the_five_types() {
+        assert_eq!(sniff_image_type(PNG), Some("image/png"));
         assert_eq!(
-            thumbnail_data_url("image/PNG", b"foo").unwrap(),
-            "data:image/png;base64,Zm9v"
+            sniff_image_type(&[0xff, 0xd8, 0xff, 0xe0]),
+            Some("image/jpeg")
         );
-        assert!(thumbnail_data_url("text/html", b"foo").is_none());
-        assert!(thumbnail_data_url("image/png;x", b"foo").is_none());
-        assert!(thumbnail_data_url("image/png", b"").is_none());
-        assert!(thumbnail_data_url("image/png", &vec![0; MAX_THUMBNAIL_BYTES + 1]).is_none());
-        assert!(thumbnail_data_url("image/png", &vec![0; MAX_THUMBNAIL_BYTES]).is_some());
+        assert_eq!(sniff_image_type(b"GIF89a.."), Some("image/gif"));
+        assert_eq!(sniff_image_type(b"GIF87a.."), Some("image/gif"));
+        assert_eq!(
+            sniff_image_type(b"RIFF\x00\x00\x00\x00WEBPVP8 "),
+            Some("image/webp")
+        );
+        assert_eq!(sniff_image_type(b"BM\x00\x00"), Some("image/bmp"));
+    }
+
+    #[test]
+    fn sniff_rejects_everything_else() {
+        assert_eq!(sniff_image_type(b""), None);
+        assert_eq!(sniff_image_type(b"<svg xmlns="), None);
+        assert_eq!(sniff_image_type(b"RIFF\x00\x00\x00\x00WAVEfmt "), None);
+        assert_eq!(sniff_image_type(b"RIFF"), None);
+        assert_eq!(sniff_image_type(b"\x89PNG"), None);
+    }
+
+    #[test]
+    fn thumbnail_url_uses_the_sniffed_type_and_a_size_cap() {
+        let url = thumbnail_data_url(PNG).unwrap();
+        assert!(url.starts_with("data:image/png;base64,"));
+        assert!(thumbnail_data_url(b"foo").is_none());
+        assert!(thumbnail_data_url(b"").is_none());
+        let mut big = PNG.to_vec();
+        big.resize(MAX_THUMBNAIL_BYTES, 0);
+        assert!(thumbnail_data_url(&big).is_some());
+        big.push(0);
+        assert!(thumbnail_data_url(&big).is_none());
     }
 
     #[test]
@@ -257,20 +290,20 @@ mod tests {
 
     #[test]
     fn commands_parse_from_snake_case() {
-        let c: MediaCommand = serde_json::from_str("\"play_pause\"").unwrap();
-        assert_eq!(c, MediaCommand::PlayPause);
-        assert!(serde_json::from_str::<MediaCommand>("\"stop\"").is_err());
+        let c: MediaControl = serde_json::from_str("\"play_pause\"").unwrap();
+        assert_eq!(c, MediaControl::PlayPause);
+        assert!(serde_json::from_str::<MediaControl>("\"stop\"").is_err());
     }
 
     #[test]
     fn fake_records_allowed_commands_only() {
         let s = FakeMediaSession::new(playing());
-        s.send(MediaCommand::PlayPause).unwrap();
-        s.send(MediaCommand::Next).unwrap();
-        assert!(s.send(MediaCommand::Previous).is_err());
-        assert_eq!(s.sent(), vec![MediaCommand::PlayPause, MediaCommand::Next]);
+        s.send(MediaControl::PlayPause).unwrap();
+        s.send(MediaControl::Next).unwrap();
+        assert!(s.send(MediaControl::Previous).is_err());
+        assert_eq!(s.sent(), vec![MediaControl::PlayPause, MediaControl::Next]);
         assert!(FakeMediaSession::no_player()
-            .send(MediaCommand::Next)
+            .send(MediaControl::Next)
             .is_err());
     }
 

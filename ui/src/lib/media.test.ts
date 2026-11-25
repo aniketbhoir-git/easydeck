@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canDo, safeThumbnail, visibleControls, type MediaState } from './media'
+import { canDo, safeThumbnail, visibleControls, watchMedia, type MediaState } from './media'
 
 const playing: MediaState = {
   title: 'T',
@@ -53,5 +53,77 @@ describe('safeThumbnail', () => {
     ]) {
       expect(safeThumbnail(bad)).toBeUndefined()
     }
+  })
+})
+
+describe('watchMedia', () => {
+  const tick = () => new Promise((r) => setTimeout(r, 0))
+  const newer: MediaState = { ...playing, title: 'Newer' }
+  const noListen = () => Promise.resolve(() => {})
+
+  it('delivers the first read when no event came before it', async () => {
+    const seen: (MediaState | null)[] = []
+    watchMedia((m) => seen.push(m), () => Promise.resolve(playing), noListen)
+    await tick()
+    expect(seen).toEqual([playing])
+  })
+
+  it('drops a slow first read that lands after an event', async () => {
+    const seen: (MediaState | null)[] = []
+    let reply!: (m: MediaState) => void
+    let emit!: (m: MediaState) => void
+    watchMedia(
+      (m) => seen.push(m),
+      () => new Promise<MediaState>((r) => (reply = r)),
+      (h) => {
+        emit = h
+        return Promise.resolve(() => {})
+      },
+    )
+    await tick()
+    emit(newer)
+    reply(playing)
+    await tick()
+    expect(seen).toEqual([newer])
+  })
+
+  it('ignores a failed first read after an event', async () => {
+    const seen: (MediaState | null)[] = []
+    let fail!: () => void
+    let emit!: (m: MediaState) => void
+    watchMedia(
+      (m) => seen.push(m),
+      () => new Promise<MediaState>((_, rej) => (fail = () => rej(new Error('x')))),
+      (h) => {
+        emit = h
+        return Promise.resolve(() => {})
+      },
+    )
+    await tick()
+    emit(newer)
+    fail()
+    await tick()
+    expect(seen).toEqual([newer])
+  })
+
+  it('ignores a failed or late first read after stop', async () => {
+    const seen: (MediaState | null)[] = []
+    let fail!: () => void
+    const stop = watchMedia(
+      (m) => seen.push(m),
+      () => new Promise<MediaState>((_, rej) => (fail = () => rej(new Error('x')))),
+      noListen,
+    )
+    stop()
+    fail()
+    await tick()
+    expect(seen).toEqual([])
+  })
+
+  it('reports null when the first read fails and nothing else came', async () => {
+    const seen: (MediaState | null)[] = []
+    watchMedia((m) => seen.push(m), () => Promise.reject(new Error('x')), noListen)
+    await tick()
+    expect(seen).toEqual([null])
   })
 })

@@ -5,10 +5,11 @@
 //! run them from a blocking thread, not from an async worker. COM is initialised once per
 //! calling thread (MTA).
 
+use easydeck_core::deck::MediaControl;
 use easydeck_core::media::{
-    thumbnail_data_url, MediaCommand, MediaError, MediaSession, MediaState, MediaStatus,
-    MAX_THUMBNAIL_BYTES,
+    thumbnail_data_url, MediaError, MediaSession, MediaState, MediaStatus, MAX_THUMBNAIL_BYTES,
 };
+use std::cell::RefCell;
 use std::sync::Mutex;
 use windows::Media::Control::{
     GlobalSystemMediaTransportControlsSession, GlobalSystemMediaTransportControlsSessionManager,
@@ -36,13 +37,21 @@ thread_local! {
     };
 }
 
-/// A thumbnail that failed to load is retried this many polls before we give up on the track.
+thread_local! {
+    /// The session manager of this thread, built once. Dropped on an error so the next call
+    /// asks for a new one.
+    static MANAGER: RefCell<Option<GlobalSystemMediaTransportControlsSessionManager>> =
+        const { RefCell::new(None) };
+}
+
+/// A track's thumbnail is read on this many polls after the track changes. The first reads may
+/// fail or still return the previous track's art; a later good read replaces the cached one.
 const THUMB_TRIES: u8 = 5;
 
 #[derive(Default)]
 struct ThumbCache {
-    /// Title and artist of the track the cache belongs to.
-    key: (String, String),
+    /// Title, artist and source app id of the track the cache belongs to.
+    key: (String, String, String),
     thumb: Option<String>,
     tries: u8,
 }
@@ -59,19 +68,39 @@ impl WindowsMediaSession {
         Self::default()
     }
 
-    fn current() -> Result<Option<GlobalSystemMediaTransportControlsSession>, MediaError> {
+    fn manager() -> Result<GlobalSystemMediaTransportControlsSessionManager, MediaError> {
         COM_READY.with(|r| r.clone())?;
-        let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()
-            .map_err(err)?
-            .join()
-            .map_err(err)?;
+        MANAGER.with(|m| {
+            let mut m = m.borrow_mut();
+            if let Some(manager) = m.as_ref() {
+                return Ok(manager.clone());
+            }
+            let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()
+                .map_err(err)?
+                .join()
+                .map_err(err)?;
+            *m = Some(manager.clone());
+            Ok(manager)
+        })
+    }
+
+    fn current() -> Result<Option<GlobalSystemMediaTransportControlsSession>, MediaError> {
+        let manager = Self::manager()?;
         // No current session is an error from `GetCurrentSession` (a null result).
         Ok(manager.GetCurrentSession().ok())
     }
 
+    /// Forget the cached manager after a failed call, so the next call builds a new one.
+    fn reset_manager<T>(r: Result<T, MediaError>) -> Result<T, MediaError> {
+        if r.is_err() {
+            MANAGER.with(|m| *m.borrow_mut() = None);
+        }
+        r
+    }
+
     fn thumbnail(
         &self,
-        key: (String, String),
+        key: (String, String, String),
         props: &windows::Media::Control::GlobalSystemMediaTransportControlsSessionMediaProperties,
     ) -> Option<String> {
         let mut c = self.cache.lock().unwrap_or_else(|e| e.into_inner());
@@ -81,9 +110,11 @@ impl WindowsMediaSession {
                 ..ThumbCache::default()
             };
         }
-        if c.thumb.is_none() && c.tries < THUMB_TRIES {
+        if c.tries < THUMB_TRIES {
             c.tries += 1;
-            c.thumb = read_thumbnail(props);
+            if let Some(t) = read_thumbnail(props) {
+                c.thumb = Some(t);
+            }
         }
         c.thumb.clone()
     }
@@ -97,16 +128,25 @@ fn read_thumbnail(
     if size == 0 || size > MAX_THUMBNAIL_BYTES as u64 {
         return None;
     }
-    let content_type = stream.ContentType().ok()?.to_string();
     let reader = DataReader::CreateDataReader(&stream).ok()?;
     let loaded = reader.LoadAsync(size as u32).ok()?.join().ok()?;
     let mut buf = vec![0u8; loaded as usize];
     reader.ReadBytes(&mut buf).ok()?;
-    thumbnail_data_url(&content_type, &buf)
+    thumbnail_data_url(&buf)
 }
 
 impl MediaSession for WindowsMediaSession {
     fn get(&self) -> Result<MediaState, MediaError> {
+        Self::reset_manager(self.read())
+    }
+
+    fn send(&self, command: MediaControl) -> Result<(), MediaError> {
+        Self::reset_manager(Self::send_command(command))
+    }
+}
+
+impl WindowsMediaSession {
+    fn read(&self) -> Result<MediaState, MediaError> {
         let Some(session) = Self::current()? else {
             return Ok(MediaState::none());
         };
@@ -127,7 +167,11 @@ impl MediaSession for WindowsMediaSession {
         let on = |r: windows::core::Result<bool>| r.unwrap_or(false);
         let can_play_pause =
             on(c.IsPlayPauseToggleEnabled()) || on(c.IsPlayEnabled()) || on(c.IsPauseEnabled());
-        let thumbnail = self.thumbnail((title.clone(), artist.clone()), &props);
+        let app = session
+            .SourceAppUserModelId()
+            .map(|t| t.to_string())
+            .unwrap_or_default();
+        let thumbnail = self.thumbnail((title.clone(), artist.clone(), app), &props);
         Ok(MediaState {
             title,
             artist,
@@ -139,12 +183,12 @@ impl MediaSession for WindowsMediaSession {
         })
     }
 
-    fn send(&self, command: MediaCommand) -> Result<(), MediaError> {
+    fn send_command(command: MediaControl) -> Result<(), MediaError> {
         let session = Self::current()?.ok_or_else(|| MediaError("no player is running".into()))?;
         let accepted = match command {
-            MediaCommand::PlayPause => session.TryTogglePlayPauseAsync(),
-            MediaCommand::Next => session.TrySkipNextAsync(),
-            MediaCommand::Previous => session.TrySkipPreviousAsync(),
+            MediaControl::PlayPause => session.TryTogglePlayPauseAsync(),
+            MediaControl::Next => session.TrySkipNextAsync(),
+            MediaControl::Previous => session.TrySkipPreviousAsync(),
         }
         .map_err(err)?
         .join()

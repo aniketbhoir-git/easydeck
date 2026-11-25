@@ -6,8 +6,9 @@
 //! poll costs no image read. Not a risk item: no network call, no account.
 
 use crate::error::AppError;
+use easydeck_core::deck::MediaControl;
 use easydeck_core::deck::{Deck, WidgetKind};
-use easydeck_core::media::{poll_change, MediaCommand, MediaError, MediaSession, MediaState};
+use easydeck_core::media::{poll_change, MediaError, MediaSession, MediaState};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -89,7 +90,7 @@ pub fn get_impl(s: &dyn MediaSession) -> Result<MediaState, AppError> {
     s.get().map_err(io)
 }
 
-pub fn command_impl(s: &dyn MediaSession, command: MediaCommand) -> Result<(), AppError> {
+pub fn command_impl(s: &dyn MediaSession, command: MediaControl) -> Result<(), AppError> {
     s.send(command).map_err(io)
 }
 
@@ -117,7 +118,7 @@ pub async fn media_get(state: tauri::State<'_, MediaService>) -> Result<MediaSta
 #[tauri::command]
 pub async fn media_command(
     state: tauri::State<'_, MediaService>,
-    command: MediaCommand,
+    command: MediaControl,
 ) -> Result<(), AppError> {
     blocking(&state, move |s| command_impl(s, command)).await
 }
@@ -143,8 +144,8 @@ mod tests {
     fn get_and_command_use_the_session() {
         let s = FakeMediaSession::new(playing());
         assert_eq!(get_impl(&s).unwrap().title, "Song");
-        command_impl(&s, MediaCommand::Next).unwrap();
-        assert_eq!(s.sent(), vec![MediaCommand::Next]);
+        command_impl(&s, MediaControl::Next).unwrap();
+        assert_eq!(s.sent(), vec![MediaControl::Next]);
     }
 
     #[test]
@@ -152,7 +153,7 @@ mod tests {
         let s = FakeMediaSession::no_player();
         assert_eq!(get_impl(&s).unwrap().status, MediaStatus::None);
         assert_eq!(
-            command_impl(&s, MediaCommand::PlayPause)
+            command_impl(&s, MediaControl::PlayPause)
                 .unwrap_err()
                 .code(),
             "io"

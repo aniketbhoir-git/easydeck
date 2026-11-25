@@ -4,10 +4,9 @@
   import {
     canDo,
     mediaCommand,
-    mediaGet,
-    onMedia,
     safeThumbnail,
     visibleControls,
+    watchMedia,
     type MediaCommand,
     type MediaState,
   } from '../lib/media'
@@ -24,22 +23,7 @@
   const thumbnail = $derived(safeThumbnail(media?.thumbnail))
   const playing = $derived(media?.status === 'playing')
 
-  onMount(() => {
-    let stopped = false
-    let unlisten: (() => void) | undefined
-    mediaGet()
-      .then((m) => {
-        if (!stopped) media = m
-      })
-      .catch(() => (media = null))
-    onMedia((m) => (media = m))
-      .then((u) => (stopped ? u() : (unlisten = u)))
-      .catch(() => {})
-    return () => {
-      stopped = true
-      unlisten?.()
-    }
-  })
+  onMount(() => watchMedia((m) => (media = m)))
 
   const glyph: Record<MediaCommand, string> = { previous: '⏮', play_pause: '⏯', next: '⏭' }
   function label(c: MediaCommand): string {

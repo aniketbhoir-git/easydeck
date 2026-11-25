@@ -47,3 +47,36 @@ const SAFE_THUMBNAIL = /^data:image\/(png|jpeg|gif|webp|bmp);base64,[A-Za-z0-9+/
 export function safeThumbnail(url: unknown): string | undefined {
   return typeof url === 'string' && SAFE_THUMBNAIL.test(url) ? url : undefined
 }
+
+/**
+ * Follows the session: one first read, then `media` events. An event is newer than the first
+ * read, so the read's result (or failure) is dropped once an event has arrived or after stop.
+ * Returns the stop function. `get` and `listenMedia` are injectable for tests.
+ */
+export function watchMedia(
+  handler: (m: MediaState | null) => void,
+  get: () => Promise<MediaState> = mediaGet,
+  listenMedia: (h: (m: MediaState) => void) => Promise<UnlistenFn> = onMedia,
+): () => void {
+  let stopped = false
+  let gotEvent = false
+  let unlisten: UnlistenFn | undefined
+  get()
+    .then((m) => {
+      if (!stopped && !gotEvent) handler(m)
+    })
+    .catch(() => {
+      if (!stopped && !gotEvent) handler(null)
+    })
+  listenMedia((m) => {
+    if (stopped) return
+    gotEvent = true
+    handler(m)
+  })
+    .then((u) => (stopped ? u() : (unlisten = u)))
+    .catch(() => {})
+  return () => {
+    stopped = true
+    unlisten?.()
+  }
+}
