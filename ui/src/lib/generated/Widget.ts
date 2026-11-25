@@ -136,7 +136,7 @@ min?: number,
 /**
  * Highest value. The count stops here. Optional.
  */
-max?: number, } | { "type": "media", 
+max?: number, } | { "type": "volume", } | { "type": "media", 
 /**
  * Controls to show. Each appears at most once.
  */
